@@ -41,13 +41,17 @@ class Gt3xFileReader:
         
     def read_events(self, num_rows=None):
         if num_rows is None:
-            num_rows = 15
-        for _ in range(0,num_rows):
             raw_event = self.logreader.read_event()
-            yield raw_event
+            while raw_event is not None:
+                yield raw_event
+                raw_event = self.logreader.read_event()
+        else:    
+            for _ in range(0,num_rows):
+                raw_event = self.logreader.read_event()
+                yield raw_event
     
     def get_acceleration(self):
-        for evt in self.read_events(25):
+        for evt in self.read_events():
             timestamp = evt.header.timestamp
             payload = gt3x.Activity3Payload(evt.payload)
             for sample in payload.AccelerationSamples:
