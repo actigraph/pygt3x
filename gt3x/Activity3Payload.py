@@ -1,7 +1,11 @@
-"""Class for Activity 3 Payload"""
-class Activity3Payload:
+import gt3x.AccelerationSample
 
-    def unpack_activity(self, source, flipXY: bool):
+class Activity3Payload:
+    """
+    Class for Activity 3 Payload
+    """
+
+    def unpack_activity(self, source, timestamp:int, flipXY: bool):
         """
         Unpacks activity stored as sets of 3, 12-bit integers 
 
@@ -57,11 +61,11 @@ class Activity3Payload:
                     shifter -= 65535
                 sample[axis] = shifter
             if flipXY:
-                yield (sample[1], sample[0], sample[2])
+                yield gt3x.AccelerationSample(timestamp, x=sample[1], y=sample[0], z=sample[2])
             else:
-                yield (sample[0], sample[1], sample[2])
+                yield gt3x.AccelerationSample(timestamp, x=sample[0], y=sample[1], z=sample[2])
 
-    def __init__(self, payloadBytes):
-        self.AccelerationSamples = self.unpack_activity(payloadBytes, False)
+    def __init__(self, payloadBytes, timestamp):
+        self.AccelerationSamples = self.unpack_activity(payloadBytes, timestamp, False)
 
     

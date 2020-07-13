@@ -1,5 +1,6 @@
 import gt3x.Gt3xFileReader
 import gt3x.Gt3xRawEvent
+import gt3x.AccelerationSample
 
 class Gt3xCalibratedReader:
     """
@@ -23,10 +24,10 @@ class Gt3xCalibratedReader:
             raw_event (Gt3xRawEvent): Activity event to calibrate.
 
         """
-        payload = gt3x.Activity3Payload(raw_event.payload)
+        payload = gt3x.Activity3Payload(raw_event.payload, raw_event.header.timestamp)
         info = self.read_info()
         accelScale = float(info["Acceleration Scale"])
-        raw_event.CalibratedAcceleration = [(sample[0]/accelScale,sample[1]/accelScale,sample[2]/accelScale) for sample in payload.AccelerationSamples]
+        raw_event.CalibratedAcceleration = [gt3x.AccelerationSample(raw_event.header.timestamp, x=sample.x/accelScale, y=sample.y/accelScale, z=sample.z/accelScale) for sample in payload.AccelerationSamples]
 
     def read_events(self, num_rows: int = None):
         """
@@ -34,7 +35,7 @@ class Gt3xCalibratedReader:
 
         Parameters:
             num_rows (int): Optionally limits number or rows to return.
-            
+
         """
         for raw_event in self.source.read_events(num_rows):
             self.calibrate_acceleration(raw_event)

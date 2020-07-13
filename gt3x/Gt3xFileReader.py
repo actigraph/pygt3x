@@ -52,10 +52,9 @@ class Gt3xFileReader:
     
     def get_acceleration(self):
         for evt in self.read_events():
-            timestamp = evt.header.timestamp
-            payload = gt3x.Activity3Payload(evt.payload)
+            payload = gt3x.Activity3Payload(evt.payload, evt.header.timestamp)
             for sample in payload.AccelerationSamples:
-                yield (timestamp, sample[0], sample[1], sample[2])
+                yield sample
 
      
     def to_pandas(self):
