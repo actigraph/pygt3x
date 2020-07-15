@@ -1,8 +1,12 @@
 import io
 from zipfile import ZipFile
 import gt3x.Gt3xLogReader
+import gt3x.Activity1Payload
+import gt3x.Activity2Payload
 import gt3x.Activity3Payload
+import gt3x.Gt3xInfo
 import pandas as pd
+import json
 
 __all__ = ['Gt3xFileReader']
 
@@ -36,8 +40,15 @@ class Gt3xFileReader:
                 values = line.split(':')
                 if len(values)==2:
                     output[values[0].strip()] = values[1].strip()
-        return output
-                    
+
+        return gt3x.Gt3xInfo(output)
+
+    def read_calibration(self):
+        if not "calibration.json" in self.zipfile.namelist():
+            return None
+        with self.zipfile.open("calibration.json") as calibrationFile:
+            calibration = json.load(calibrationFile)
+            return calibration
         
     def read_events(self, num_rows=None):
         if num_rows is None:
@@ -50,9 +61,17 @@ class Gt3xFileReader:
                 raw_event = self.logreader.read_event()
                 yield raw_event
     
-    def get_acceleration(self):
-        for evt in self.read_events():
-            payload = gt3x.Activity3Payload(evt.payload, evt.header.timestamp)
+    def get_acceleration(self, num_rows=None):
+        for evt in self.read_events(num_rows):
+            if gt3x.Gt3xEventTypes(evt.header.eventType) == gt3x.Gt3xEventTypes.Activity3:
+                payload = gt3x.Activity3Payload(evt.payload, evt.header.timestamp)
+            elif gt3x.Gt3xEventTypes(evt.header.eventType) == gt3x.Gt3xEventTypes.Activity2:
+                payload = gt3x.Activity2Payload(evt.payload, evt.header.timestamp)
+            elif gt3x.Gt3xEventTypes(evt.header.eventType) == gt3x.Gt3xEventTypes.Activity:
+                payload = gt3x.Activity1Payload(evt.payload, evt.header.timestamp)
+            else:
+                continue
+            
             for sample in payload.AccelerationSamples:
                 yield sample
 
