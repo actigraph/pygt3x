@@ -11,4 +11,4 @@ class AccelerationSample:
         self.z=z
     
     def __str__(self):
-        return f"timestamp: {self.timestamp}, X: {self.x}, Y: {self.y}, Z: {self.z}"
+        return f"Timestamp: {self.timestamp}, X: {self.x}, Y: {self.y}, Z: {self.z}"
