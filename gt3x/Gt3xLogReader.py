@@ -3,6 +3,7 @@ import gt3x.Gt3xRawEvent
 
 __all__ = ['Gt3xLogReader']
 
+
 class Gt3xLogReader:
     """
     Class to handle reading GT3X/AGDC log events
@@ -17,17 +18,17 @@ class Gt3xLogReader:
 
         """
         self.source = source
-    
+
     def read_event(self):
-        headerBytes = self.source.read(8)
-        if len(headerBytes) != 8:
+        header_bytes = self.source.read(8)
+        if len(header_bytes) != 8:
             return None
-        header = gt3x.Gt3xHeader(headerBytes)
-        payloadBytes = self.source.read(header.payload_size)
-        if len(payloadBytes) != header.payload_size:
+        header = gt3x.Gt3xHeader(header_bytes)
+        payload_bytes = self.source.read(header.payload_size)
+        if len(payload_bytes) != header.payload_size:
             return None
         checksum = self.source.read(1)
         if not checksum:
             return None
-        raw_event = gt3x.Gt3xRawEvent(header, payloadBytes, checksum)
+        raw_event = gt3x.Gt3xRawEvent(header, payload_bytes, checksum)
         return raw_event

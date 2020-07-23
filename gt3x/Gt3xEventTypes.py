@@ -1,5 +1,6 @@
 from enum import Enum, unique
 
+
 @unique
 class Gt3xEventTypes(Enum):
     Activity = 0

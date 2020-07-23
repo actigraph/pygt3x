@@ -2,6 +2,7 @@ import gt3x.Gt3xHeader
 
 __all__ = ['Gt3xRawEvent']
 
+
 class Gt3xRawEvent:
     """
     Class for Gt3xRawEvent
