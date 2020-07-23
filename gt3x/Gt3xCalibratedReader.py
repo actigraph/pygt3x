@@ -2,7 +2,9 @@ import gt3x.Gt3xFileReader
 import gt3x.Gt3xRawEvent
 import gt3x.AccelerationSample
 import gt3x.Gt3xEventTypes
-import numpy as np
+import pandas as pd
+import gt3x.CalibrationV2Service
+
 
 class Gt3xCalibratedReader:
     """
@@ -11,13 +13,13 @@ class Gt3xCalibratedReader:
 
     def __init__(self, source: gt3x.Gt3xFileReader):
         self.source = source
-    
+
     def read_info(self):
         """
         Returns info dictionary from source reader
         """
         return self.source.read_info()
-    
+
     def read_calibration(self):
         return self.source.read_calibration()
 
@@ -31,64 +33,64 @@ class Gt3xCalibratedReader:
         """
         if gt3x.Gt3xEventTypes(raw_event.header.eventType) == gt3x.Gt3xEventTypes.Activity3:
             payload = gt3x.Activity3Payload(raw_event.payload, raw_event.header.timestamp)
-        else:
+        elif gt3x.Gt3xEventTypes(raw_event.header.eventType) == gt3x.Gt3xEventTypes.Activity:
+            payload = gt3x.Activity1Payload(raw_event.payload, raw_event.header.timestamp)
+        elif gt3x.Gt3xEventTypes(raw_event.header.eventType) == gt3x.Gt3xEventTypes.Activity2:
             payload = gt3x.Activity2Payload(raw_event.payload, raw_event.header.timestamp)
+        else:
+            raise ValueError("Cannot calibrate non-activity event type")
 
         calibration = self.source.read_calibration()
         info = self.read_info()
 
-        if calibration is None or calibration['isCalibrated'] == True:
-            accelScale = info.get_acceleration_scale()
-            raw_event.CalibratedAcceleration = [gt3x.AccelerationSample(raw_event.header.timestamp, x=sample.x/accelScale, y=sample.y/accelScale, z=sample.z/accelScale) for sample in payload.AccelerationSamples]
+        if calibration is None or calibration['isCalibrated']:
+            # Data is already calibrated, so just return unscaled values
+            accel_scale = info.get_acceleration_scale()
+            raw_event.CalibratedAcceleration = [
+                gt3x.AccelerationSample(raw_event.header.timestamp, x=sample.x / accel_scale, y=sample.y / accel_scale,
+                                        z=sample.z / accel_scale) for sample in payload.AccelerationSamples]
+        elif calibration['calibrationMethod'] == 2:
+            # Use calibration method 2 to calibrate activity
+            sample_rate = info.get_sample_rate()
+            raw_event.CalibratedAcceleration = self.calibrate_v2(payload.AccelerationSamples, calibration, sample_rate)
         else:
-            sampleRate = info.get_sample_rate()
-            raw_event.CalibratedAcceleration = self.calibrate_v2(payload.AccelerationSamples, calibration, sampleRate)
+            raise NotImplementedError(f"Unknown calibration method: {calibration['calibrationMethod']}")
 
-    def calibrate_v2(self, samples, calibration: dict, sampleRate: int):
-        offsetX = float(calibration[f'offsetX_{sampleRate}'])
-        offsetY = float(calibration[f'offsetY_{sampleRate}'])
-        offsetZ = float(calibration[f'offsetZ_{sampleRate}'])
+    @staticmethod
+    def calibrate_v2(samples, calibration: dict, sample_rate: int):
+        calibration_service = gt3x.CalibrationV2Service(calibration, sample_rate)
 
-        sensitivityXX = float(calibration[f'sensitivityXX_{sampleRate}'])
-        sensitivityYY = float(calibration[f'sensitivityYY_{sampleRate}'])
-        sensitivityZZ = float(calibration[f'sensitivityZZ_{sampleRate}'])
-
-        sensitivityXY = float(calibration[f'sensitivityXY_{sampleRate}'])
-        sensitivityXZ = float(calibration[f'sensitivityXZ_{sampleRate}'])
-        sensitivityYZ = float(calibration[f'sensitivityYZ_{sampleRate}'])
-
-        s11 = (sensitivityXX * 0.01) ** -1.0
-        s12 = ((sensitivityXY * 0.01 + 250) ** -1.0) - 0.004
-        s13 = ((sensitivityXZ * 0.01 + 250) ** -1.0) - 0.004
-
-        s21 = ((sensitivityXY * 0.01 + 250) ** -1.0) - 0.004
-        s22 = (sensitivityYY * 0.01) ** -1.0
-        s23 = ((sensitivityYZ * 0.01 + 250) ** -1.0) - 0.004
-
-
-        s31 = ((sensitivityXZ * 0.01 + 250) ** -1.0) - 0.004
-        s32 = ((sensitivityYZ * 0.01 + 250) ** -1.0) - 0.004
-        s33 = (sensitivityZZ * 0.01) ** -1.0
-
-
-        O = np.array([[offsetX, offsetY, offsetZ]])
-        S = np.array([[s11,s21,s31],[s12,s22,s32],[s13,s23,s33]])
-        
-        for sample in samples:
-            calibratedSample = np.matmul(S, (np.array([[sample.x,sample.y,sample.z]]) - O).transpose()).transpose()
-            yield gt3x.AccelerationSample(sample.timestamp, calibratedSample[0][0], calibratedSample[0][1], calibratedSample[0][2])
+        return calibration_service.calibrate_samples(samples)
 
     def read_events(self, num_rows: int = None):
         """
         Read events from source and calibrates activity.
 
         Parameters:
-            num_rows (int): Optionally limits number or rows to return.
+            num_rows (int): Optionally limits number of rows to return.
 
         """
         for raw_event in self.source.read_events(num_rows):
-            if not gt3x.Gt3xEventTypes(raw_event.header.eventType) in [gt3x.Gt3xEventTypes.Activity, gt3x.Gt3xEventTypes.Activity2, gt3x.Gt3xEventTypes.Activity3]:
+            if not gt3x.Gt3xEventTypes(raw_event.header.eventType) in [gt3x.Gt3xEventTypes.Activity,
+                                                                       gt3x.Gt3xEventTypes.Activity2,
+                                                                       gt3x.Gt3xEventTypes.Activity3]:
                 continue
             self.calibrate_acceleration(raw_event)
             yield raw_event
-        
+
+    def get_samples(self):
+        for raw_event in self.read_events():
+            self.calibrate_acceleration(raw_event)
+            for sample in raw_event.CalibratedAcceleration:
+                yield sample.timestamp, sample.x, sample.y, sample.z
+
+    def to_pandas(self):
+        """
+        Returns acceleration data as pandas data frame
+        """
+        col_names = ['Timestamp', 'X', 'Y', 'Z']
+        data = self.get_samples()
+        df = pd.DataFrame(data, columns=col_names)
+        df.index = df["Timestamp"]
+        del df["Timestamp"]
+        return df
