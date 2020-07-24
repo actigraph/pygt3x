@@ -25,11 +25,11 @@ test_calibration = {
 
 def test_calibrate_32hz():
     service = gt3x.CalibrationV2Service(test_calibration, 32)
-    baseline_df = pd.read_csv("gt3x/tests/WRIST_rawCalibrated_032Hz.csv", header=10)
+    baseline_df = pd.read_csv("sample_files/WRIST_rawCalibrated_032Hz.csv", header=10)
     baseline_samples = list(
         [gt3x.AccelerationSample(index, row["Accelerometer X"], row["Accelerometer Y"], row["Accelerometer Z"]) for
          index, row in baseline_df.iterrows()])
-    input_df = pd.read_csv("gt3x/tests/WRIST_rawLSB_032Hz.csv", header=10)
+    input_df = pd.read_csv("sample_files/WRIST_rawLSB_032Hz.csv", header=10)
     input_samples = [
         gt3x.AccelerationSample(index, row["Accelerometer X"], row["Accelerometer Y"], row["Accelerometer Z"]) for
         index, row in input_df.iterrows()]
