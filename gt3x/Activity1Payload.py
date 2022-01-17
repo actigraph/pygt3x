@@ -1,4 +1,4 @@
-import gt3x.BitPackAcceleration
+from gt3x.BitPackAcceleration import BitPackAcceleration
 
 
 class Activity1Payload:
@@ -7,4 +7,6 @@ class Activity1Payload:
     """
 
     def __init__(self, payload_bytes, timestamp):
-        self.AccelerationSamples = gt3x.BitPackAcceleration.unpack_activity(payload_bytes, timestamp, True)
+        self.AccelerationSamples = \
+            BitPackAcceleration.unpack_activity(
+                payload_bytes, timestamp, True)

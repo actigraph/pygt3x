@@ -1,4 +1,5 @@
-import gt3x.AccelerationSample
+"""Class for unpacking activity."""
+from gt3x.AccelerationSample import AccelerationSample
 
 
 class BitPackAcceleration:
@@ -6,15 +7,16 @@ class BitPackAcceleration:
     @staticmethod
     def unpack_activity(source, timestamp: int, flip_xy: bool):
         """
-        Unpacks activity stored as sets of 3, 12-bit integers 
+        Unpacks activity stored as sets of 3, 12-bit integers
 
         Parameters:
         source (byte array): Activity payload bytes array
-        flipXY (bool): If true sample is extracted in Y,X,Z order. Otherwise X,Y,Z order.
+        flipXY (bool): If true sample is extracted in Y,X,Z order.
+         Otherwise X,Y,Z order.
 
         Returns:
         Generator which produces acceleration samples as Int16 values
-        
+
         """
         offset = 0
         index = -1
@@ -26,6 +28,7 @@ class BitPackAcceleration:
             if index == len(source):
                 return None
             return source[index]
+
         current = 0
         while True:
             for axis in range(0, 3):
@@ -60,6 +63,8 @@ class BitPackAcceleration:
                     shifter -= 65535
                 sample[axis] = shifter
             if flip_xy:
-                yield gt3x.AccelerationSample(timestamp, x=sample[1], y=sample[0], z=sample[2])
+                yield AccelerationSample(
+                    timestamp, x=sample[1], y=sample[0], z=sample[2])
             else:
-                yield gt3x.AccelerationSample(timestamp, x=sample[0], y=sample[1], z=sample[2])
+                yield AccelerationSample(
+                    timestamp, x=sample[0], y=sample[1], z=sample[2])

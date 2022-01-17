@@ -1,5 +1,5 @@
-import gt3x.Gt3xHeader
-import gt3x.Gt3xRawEvent
+from gt3x.Gt3xHeader import Gt3xHeader
+from gt3x.Gt3xRawEvent import Gt3xRawEvent
 
 __all__ = ['Gt3xLogReader']
 
@@ -13,7 +13,7 @@ class Gt3xLogReader:
         """
         Constructor for Gt3xLogReader
 
-        Parameters: 
+        Parameters:
         source: IO stream for log.bin file data
 
         """
@@ -23,12 +23,12 @@ class Gt3xLogReader:
         header_bytes = self.source.read(8)
         if len(header_bytes) != 8:
             return None
-        header = gt3x.Gt3xHeader(header_bytes)
+        header = Gt3xHeader(header_bytes)
         payload_bytes = self.source.read(header.payload_size)
         if len(payload_bytes) != header.payload_size:
             return None
         checksum = self.source.read(1)
         if not checksum:
             return None
-        raw_event = gt3x.Gt3xRawEvent(header, payload_bytes, checksum)
+        raw_event = Gt3xRawEvent(header, payload_bytes, checksum)
         return raw_event

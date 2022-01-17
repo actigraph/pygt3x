@@ -1,12 +1,11 @@
+"""GT3x header structure."""
 import struct
-
-__all__ = ['Gt3xHeader']
 
 
 class Gt3xHeader:
     """
     Class for Gt3xHeader
-    
+
     Attributes:
         separator (byte): Log separator value
         timestamp (long): Unix epoch timestamp in seconds
@@ -15,8 +14,11 @@ class Gt3xHeader:
 
     """
 
-    def __init__(self, header_bytes):
-        (separator, eventType, timestamp, payload_size) = struct.unpack("<BBLH", header_bytes)
+    def __init__(self, header_bytes: bytes):
+        (separator,
+         eventType,
+         timestamp,
+         payload_size) = struct.unpack("<BBLH", header_bytes)
         self.separator = separator
         self.timestamp = timestamp
         self.eventType = eventType

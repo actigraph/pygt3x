@@ -1,12 +1,15 @@
 import io
-from zipfile import ZipFile
-import gt3x.Gt3xLogReader
-import gt3x.Activity1Payload
-import gt3x.Activity2Payload
-import gt3x.Activity3Payload
-import gt3x.Gt3xInfo
-import pandas as pd
 import json
+from zipfile import ZipFile
+
+import pandas as pd
+
+from gt3x.Activity1Payload import Activity1Payload
+from gt3x.Activity2Payload import Activity2Payload
+from gt3x.Activity3Payload import Activity3Payload
+from gt3x.Gt3xEventTypes import Gt3xEventTypes
+from gt3x.Gt3xInfo import Gt3xInfo
+from gt3x.Gt3xLogReader import Gt3xLogReader
 
 __all__ = ['Gt3xFileReader']
 
@@ -14,7 +17,7 @@ __all__ = ['Gt3xFileReader']
 class Gt3xFileReader:
     """
     Class for Gt3x file reader
-    
+
     Reads GT3X/AGDC files
     """
 
@@ -24,7 +27,7 @@ class Gt3xFileReader:
     def __enter__(self):
         self.zipfile = ZipFile(self.file_name)
         self.logfile = self.zipfile.open("log.bin", "r")
-        self.logreader = gt3x.Gt3xLogReader(self.logfile)
+        self.logreader = Gt3xLogReader(self.logfile)
         return self
 
     def __exit__(self, typ, value, traceback):
@@ -36,13 +39,14 @@ class Gt3xFileReader:
         Parses info.txt and returns dictionary with key/value pairs
         """
         output = dict()
-        with io.TextIOWrapper(self.zipfile.open("info.txt", "r"), encoding="utf-8-sig") as infoFile:
+        with io.TextIOWrapper(self.zipfile.open("info.txt", "r"),
+                              encoding="utf-8-sig") as infoFile:
             for line in infoFile.readlines():
                 values = line.split(':')
                 if len(values) == 2:
                     output[values[0].strip()] = values[1].strip()
 
-        return gt3x.Gt3xInfo(output)
+        return Gt3xInfo(output)
 
     def read_calibration(self):
         if "calibration.json" not in self.zipfile.namelist():
@@ -64,12 +68,21 @@ class Gt3xFileReader:
 
     def get_acceleration(self, num_rows=None):
         for evt in self.read_events(num_rows):
-            if gt3x.Gt3xEventTypes(evt.header.eventType) == gt3x.Gt3xEventTypes.Activity3:
-                payload = gt3x.Activity3Payload(evt.payload, evt.header.timestamp)
-            elif gt3x.Gt3xEventTypes(evt.header.eventType) == gt3x.Gt3xEventTypes.Activity2:
-                payload = gt3x.Activity2Payload(evt.payload, evt.header.timestamp)
-            elif gt3x.Gt3xEventTypes(evt.header.eventType) == gt3x.Gt3xEventTypes.Activity:
-                payload = gt3x.Activity1Payload(evt.payload, evt.header.timestamp)
+            if Gt3xEventTypes(
+                    evt.header.eventType
+            ) == Gt3xEventTypes.Activity3:
+                payload = Activity3Payload(
+                    evt.payload, evt.header.timestamp)
+            elif Gt3xEventTypes(
+                    evt.header.eventType
+            ) == Gt3xEventTypes.Activity2:
+                payload = Activity2Payload(
+                    evt.payload, evt.header.timestamp)
+            elif Gt3xEventTypes(
+                    evt.header.eventType
+            ) == Gt3xEventTypes.Activity:
+                payload = Activity1Payload(
+                    evt.payload, evt.header.timestamp)
             else:
                 continue
 
