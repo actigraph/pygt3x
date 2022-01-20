@@ -1,5 +1,5 @@
-import gt3x.CalibrationV2Service
-import pandas as pd
+from gt3x.CalibrationV2Service import CalibrationV2Service
+from gt3x.AccelerationSample import AccelerationSample
 
 test_calibration = {
     "positiveZeroGOffsetX_32": 256,
@@ -23,15 +23,19 @@ test_calibration = {
 }
 
 
-def test_calibrate_32hz():
-    service = gt3x.CalibrationV2Service(test_calibration, 32)
-    baseline_df = pd.read_csv("sample_files/WRIST_rawCalibrated_032Hz.csv", header=10)
+def test_calibrate_32hz(calibrated_dataframe, wrist_dataframe):
+    service = CalibrationV2Service(test_calibration, 32)
+    baseline_df = calibrated_dataframe
     baseline_samples = list(
-        [gt3x.AccelerationSample(index, row["Accelerometer X"], row["Accelerometer Y"], row["Accelerometer Z"]) for
-         index, row in baseline_df.iterrows()])
-    input_df = pd.read_csv("sample_files/WRIST_rawLSB_032Hz.csv", header=10)
+        [AccelerationSample(
+            index, row["Accelerometer X"],
+            row["Accelerometer Y"], row["Accelerometer Z"]) for
+            index, row in baseline_df.iterrows()])
+    input_df = wrist_dataframe
     input_samples = [
-        gt3x.AccelerationSample(index, row["Accelerometer X"], row["Accelerometer Y"], row["Accelerometer Z"]) for
+        AccelerationSample(
+            index, row["Accelerometer X"],
+            row["Accelerometer Y"], row["Accelerometer Z"]) for
         index, row in input_df.iterrows()]
     output_samples = list(service.calibrate_samples(input_samples))
 

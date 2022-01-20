@@ -1,17 +1,24 @@
-import gt3x.Gt3xFileReader
-import gt3x.Gt3xRawEvent
-import gt3x.AccelerationSample
-import gt3x.Gt3xEventTypes
+from typing import Union
+
 import pandas as pd
-import gt3x.CalibrationV2Service
+
+from gt3x.AccelerationSample import AccelerationSample
+from gt3x.Activity1Payload import Activity1Payload
+from gt3x.Activity2Payload import Activity2Payload
+from gt3x.Activity3Payload import Activity3Payload
+from gt3x.CalibrationV2Service import CalibrationV2Service
+from gt3x.Gt3xEventTypes import Gt3xEventTypes
+from gt3x.Gt3xFileReader import Gt3xFileReader
+from gt3x.Gt3xRawEvent import Gt3xRawEvent
 
 
 class Gt3xCalibratedReader:
-    """
-    Calibrated event reader. Will calibrate activity events as they are read.
+    """Calibrated event reader.
+
+    Will calibrate activity events as they are read.
     """
 
-    def __init__(self, source: gt3x.Gt3xFileReader):
+    def __init__(self, source: Gt3xFileReader):
         self.source = source
 
     def read_info(self):
@@ -23,7 +30,7 @@ class Gt3xCalibratedReader:
     def read_calibration(self):
         return self.source.read_calibration()
 
-    def calibrate_acceleration(self, raw_event: gt3x.Gt3xRawEvent):
+    def calibrate_acceleration(self, raw_event: Gt3xRawEvent):
         """
         Calibrates acceleration samples.
 
@@ -31,14 +38,27 @@ class Gt3xCalibratedReader:
             raw_event (Gt3xRawEvent): Activity event to calibrate.
 
         """
-        if gt3x.Gt3xEventTypes(raw_event.header.eventType) == gt3x.Gt3xEventTypes.Activity3:
-            payload = gt3x.Activity3Payload(raw_event.payload, raw_event.header.timestamp)
-        elif gt3x.Gt3xEventTypes(raw_event.header.eventType) == gt3x.Gt3xEventTypes.Activity:
-            payload = gt3x.Activity1Payload(raw_event.payload, raw_event.header.timestamp)
-        elif gt3x.Gt3xEventTypes(raw_event.header.eventType) == gt3x.Gt3xEventTypes.Activity2:
-            payload = gt3x.Activity2Payload(raw_event.payload, raw_event.header.timestamp)
+        payload: Union[Activity1Payload,
+                       Activity2Payload,
+                       Activity3Payload]
+        if Gt3xEventTypes(
+                raw_event.header.eventType
+        ) == Gt3xEventTypes.Activity3:
+            payload = Activity3Payload(
+                raw_event.payload, raw_event.header.timestamp)
+        elif Gt3xEventTypes(
+                raw_event.header.eventType
+        ) == Gt3xEventTypes.Activity:
+            payload = Activity1Payload(
+                raw_event.payload, raw_event.header.timestamp)
+        elif Gt3xEventTypes(
+                raw_event.header.eventType
+        ) == Gt3xEventTypes.Activity2:
+            payload = Activity2Payload(
+                raw_event.payload, raw_event.header.timestamp)
         else:
-            raise ValueError("Cannot calibrate non-activity event type")
+            raise ValueError(
+                "Cannot calibrate non-activity event type")
 
         calibration = self.source.read_calibration()
         info = self.read_info()
@@ -47,18 +67,26 @@ class Gt3xCalibratedReader:
             # Data is already calibrated, so just return unscaled values
             accel_scale = info.get_acceleration_scale()
             raw_event.CalibratedAcceleration = [
-                gt3x.AccelerationSample(raw_event.header.timestamp, x=sample.x / accel_scale, y=sample.y / accel_scale,
-                                        z=sample.z / accel_scale) for sample in payload.AccelerationSamples]
+                AccelerationSample(
+                    raw_event.header.timestamp,
+                    x=sample.x / accel_scale,
+                    y=sample.y / accel_scale,
+                    z=sample.z / accel_scale
+                ) for sample in payload.AccelerationSamples]
         elif calibration['calibrationMethod'] == 2:
             # Use calibration method 2 to calibrate activity
             sample_rate = info.get_sample_rate()
-            raw_event.CalibratedAcceleration = self.calibrate_v2(payload.AccelerationSamples, calibration, sample_rate)
+            raw_event.CalibratedAcceleration = self.calibrate_v2(
+                payload.AccelerationSamples, calibration, sample_rate)
         else:
-            raise NotImplementedError(f"Unknown calibration method: {calibration['calibrationMethod']}")
+            raise NotImplementedError(
+                f"Unknown calibration method: "
+                f"{calibration['calibrationMethod']}")
 
     @staticmethod
     def calibrate_v2(samples, calibration: dict, sample_rate: int):
-        calibration_service = gt3x.CalibrationV2Service(calibration, sample_rate)
+        calibration_service = CalibrationV2Service(
+            calibration, sample_rate)
 
         return calibration_service.calibrate_samples(samples)
 
@@ -71,9 +99,11 @@ class Gt3xCalibratedReader:
 
         """
         for raw_event in self.source.read_events(num_rows):
-            if not gt3x.Gt3xEventTypes(raw_event.header.eventType) in [gt3x.Gt3xEventTypes.Activity,
-                                                                       gt3x.Gt3xEventTypes.Activity2,
-                                                                       gt3x.Gt3xEventTypes.Activity3]:
+            if not Gt3xEventTypes(
+                    raw_event.header.eventType) in [
+                       Gt3xEventTypes.Activity,
+                       Gt3xEventTypes.Activity2,
+                       Gt3xEventTypes.Activity3]:
                 continue
             self.calibrate_acceleration(raw_event)
             yield raw_event
