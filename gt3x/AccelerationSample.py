@@ -14,6 +14,9 @@ class AccelerationSample:
         return f"Timestamp: {self.timestamp}, X: {self.x}," \
                f" Y: {self.y}, Z: {self.z}"
 
+    def __iter__(self):
+        return iter([self.timestamp, self.x, self.y, self.z])
+
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             return self.timestamp == other.timestamp and \
