@@ -17,10 +17,10 @@ class Activity2Payload:
                 b = stream.read(2)
                 sample[axis] = int.from_bytes(b, byteorder='little',
                                               signed=True)
-                yield AccelerationSample(timestamp,
-                                         sample[0],
-                                         sample[1],
-                                         sample[2])
+            yield AccelerationSample(timestamp,
+                                     sample[0],
+                                     sample[1],
+                                     sample[2])
 
     def __init__(self, payload_bytes, timestamp):
         self.AccelerationSamples = self.unpack_activity2(
