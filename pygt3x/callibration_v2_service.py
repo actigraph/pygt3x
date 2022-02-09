@@ -1,6 +1,6 @@
 import numpy as np
 
-from gt3x.componenets import AccelerationSample
+from pygt3x.componenets import AccelerationSample
 
 
 class CalibrationV2Service:

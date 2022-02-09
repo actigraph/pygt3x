@@ -1,7 +1,7 @@
 import io
 
-from gt3x.bit_pack_acceleration import BitPackAcceleration
-from gt3x.componenets import AccelerationSample
+from pygt3x.bit_pack_acceleration import BitPackAcceleration
+from pygt3x.componenets import AccelerationSample
 
 
 class Activity1Payload:

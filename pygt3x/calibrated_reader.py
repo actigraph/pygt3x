@@ -2,14 +2,14 @@ from typing import Union
 
 import pandas as pd
 
-from gt3x.activity_payload import Activity1Payload
-from gt3x.activity_payload import Activity2Payload
-from gt3x.activity_payload import Activity3Payload
-from gt3x.callibration_v2_service import CalibrationV2Service
-from gt3x.componenets import AccelerationSample
-from gt3x.componenets import RawEvent
-from gt3x.events import Types
-from gt3x.reader import FileReader
+from pygt3x.activity_payload import Activity1Payload
+from pygt3x.activity_payload import Activity2Payload
+from pygt3x.activity_payload import Activity3Payload
+from pygt3x.callibration_v2_service import CalibrationV2Service
+from pygt3x.componenets import AccelerationSample
+from pygt3x.componenets import RawEvent
+from pygt3x.events import Types
+from pygt3x.reader import FileReader
 
 
 class CalibratedReader:

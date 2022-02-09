@@ -1,5 +1,5 @@
-from gt3x.callibration_v2_service import CalibrationV2Service
-from gt3x.componenets import AccelerationSample
+from pygt3x.callibration_v2_service import CalibrationV2Service
+from pygt3x.componenets import AccelerationSample
 
 test_calibration = {
     "positiveZeroGOffsetX_32": 256,
