@@ -1,4 +1,5 @@
 # pygt3x
+![Tests](https://github.com/actigraph/pygt3x/actions/workflows/tests.yml/badge.svg)
 
 Python module for reading GT3X/AGDC file format data
 
