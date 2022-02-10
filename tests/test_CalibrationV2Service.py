@@ -1,5 +1,5 @@
-from gt3x.CalibrationV2Service import CalibrationV2Service
-from gt3x.AccelerationSample import AccelerationSample
+from pygt3x.callibration_v2_service import CalibrationV2Service
+from pygt3x.componenets import AccelerationSample
 
 test_calibration = {
     "positiveZeroGOffsetX_32": 256,
@@ -19,7 +19,7 @@ test_calibration = {
     "sensitivityZZ_32": 24304,
     "sensitivityXY_32": -615,
     "sensitivityXZ_32": -222,
-    "sensitivityYZ_32": -28
+    "sensitivityYZ_32": -28,
 }
 
 
@@ -27,16 +27,26 @@ def test_calibrate_32hz(calibrated_dataframe, wrist_dataframe):
     service = CalibrationV2Service(test_calibration, 32)
     baseline_df = calibrated_dataframe
     baseline_samples = list(
-        [AccelerationSample(
-            index, row["Accelerometer X"],
-            row["Accelerometer Y"], row["Accelerometer Z"]) for
-            index, row in baseline_df.iterrows()])
+        [
+            AccelerationSample(
+                index,
+                row["Accelerometer X"],
+                row["Accelerometer Y"],
+                row["Accelerometer Z"],
+            )
+            for index, row in baseline_df.iterrows()
+        ]
+    )
     input_df = wrist_dataframe
     input_samples = [
         AccelerationSample(
-            index, row["Accelerometer X"],
-            row["Accelerometer Y"], row["Accelerometer Z"]) for
-        index, row in input_df.iterrows()]
+            index,
+            row["Accelerometer X"],
+            row["Accelerometer Y"],
+            row["Accelerometer Z"],
+        )
+        for index, row in input_df.iterrows()
+    ]
     output_samples = list(service.calibrate_samples(input_samples))
 
     baseline_epsilon = 1e-14

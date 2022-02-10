@@ -1,9 +1,8 @@
 """Class for unpacking activity."""
-from gt3x.AccelerationSample import AccelerationSample
+from pygt3x.componenets import AccelerationSample
 
 
 class BitPackAcceleration:
-
     @staticmethod
     def unpack_activity(source, timestamp: int, flip_xy: bool):
         """
@@ -37,23 +36,23 @@ class BitPackAcceleration:
                     if current is None:
                         return
 
-                    shifter = ((current & 0xFF) << 4)
+                    shifter = (current & 0xFF) << 4
                     offset += 8
 
                     current = get_next_byte()
                     if current is None:
                         return
 
-                    shifter |= ((current & 0xF0) >> 4)
+                    shifter |= (current & 0xF0) >> 4
                     offset += 4
                 else:
-                    shifter = ((current & 0x0F) << 8)
+                    shifter = (current & 0x0F) << 8
                     offset += 4
                     current = get_next_byte()
                     if current is None:
                         return
 
-                    shifter |= (current & 0xFF)
+                    shifter |= current & 0xFF
                     offset += 8
 
                 if 0 != (shifter & 0x0800):
@@ -64,7 +63,9 @@ class BitPackAcceleration:
                 sample[axis] = shifter
             if flip_xy:
                 yield AccelerationSample(
-                    timestamp, x=sample[1], y=sample[0], z=sample[2])
+                    timestamp, x=sample[1], y=sample[0], z=sample[2]
+                )
             else:
                 yield AccelerationSample(
-                    timestamp, x=sample[0], y=sample[1], z=sample[2])
+                    timestamp, x=sample[0], y=sample[1], z=sample[2]
+                )

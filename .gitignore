@@ -131,3 +131,7 @@ dmypy.json
 .idea/
 .pytest_cache/
 .vscode/
+
+# Poetry
+env
+poetry.lock

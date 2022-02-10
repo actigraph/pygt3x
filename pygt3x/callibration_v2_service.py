@@ -1,33 +1,26 @@
 import numpy as np
 
-from gt3x.AccelerationSample import AccelerationSample
+from pygt3x.componenets import AccelerationSample
 
 
 class CalibrationV2Service:
     def __init__(self, calibration: dict, sample_rate: int):
         self.offset_vector = np.array([[0, 0, 0]])
-        self.sensitivity_matrix = np.array(
-            [[0, 0, 0], [0, 0, 0], [0, 0, 0]])
+        self.sensitivity_matrix = np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
         self.set_calibration(calibration, sample_rate)
 
     def set_calibration(self, calibration: dict, sample_rate: int):
-        offset_x = float(calibration[f'offsetX_{sample_rate}'])
-        offset_y = float(calibration[f'offsetY_{sample_rate}'])
-        offset_z = float(calibration[f'offsetZ_{sample_rate}'])
+        offset_x = float(calibration[f"offsetX_{sample_rate}"])
+        offset_y = float(calibration[f"offsetY_{sample_rate}"])
+        offset_z = float(calibration[f"offsetZ_{sample_rate}"])
 
-        sensitivity_xx = float(
-            calibration[f'sensitivityXX_{sample_rate}'])
-        sensitivity_yy = float(
-            calibration[f'sensitivityYY_{sample_rate}'])
-        sensitivity_zz = float(
-            calibration[f'sensitivityZZ_{sample_rate}'])
+        sensitivity_xx = float(calibration[f"sensitivityXX_{sample_rate}"])
+        sensitivity_yy = float(calibration[f"sensitivityYY_{sample_rate}"])
+        sensitivity_zz = float(calibration[f"sensitivityZZ_{sample_rate}"])
 
-        sensitivity_xy = float(
-            calibration[f'sensitivityXY_{sample_rate}'])
-        sensitivity_xz = float(
-            calibration[f'sensitivityXZ_{sample_rate}'])
-        sensitivity_yz = float(
-            calibration[f'sensitivityYZ_{sample_rate}'])
+        sensitivity_xy = float(calibration[f"sensitivityXY_{sample_rate}"])
+        sensitivity_xz = float(calibration[f"sensitivityXZ_{sample_rate}"])
+        sensitivity_yz = float(calibration[f"sensitivityYZ_{sample_rate}"])
 
         s11 = (sensitivity_xx * 0.01) ** -1.0
         s12 = ((sensitivity_xy * 0.01 + 250) ** -1.0) - 0.004
@@ -43,16 +36,20 @@ class CalibrationV2Service:
 
         self.offset_vector = np.array([[offset_x, offset_y, offset_z]])
         self.sensitivity_matrix = np.array(
-            [[s11, s21, s31], [s12, s22, s32], [s13, s23, s33]])
+            [[s11, s21, s31], [s12, s22, s32], [s13, s23, s33]]
+        )
 
     def calibrate_samples(self, samples):
         for sample in samples:
             calibrated_sample = np.matmul(
                 self.sensitivity_matrix,
-                (np.array([[sample.x, sample.y, sample.z]]) -
-                 self.offset_vector).transpose()).transpose()
+                (
+                    np.array([[sample.x, sample.y, sample.z]]) - self.offset_vector
+                ).transpose(),
+            ).transpose()
             yield AccelerationSample(
                 sample.timestamp,
                 calibrated_sample[0][0],
                 calibrated_sample[0][1],
-                calibrated_sample[0][2])
+                calibrated_sample[0][2],
+            )

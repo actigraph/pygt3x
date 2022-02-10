@@ -1,16 +1,17 @@
-# gt3x-py
+# pygt3x
 
 Python module for reading GT3X/AGDC file format data
 
 ## Example Usage
 
 ```python
-import gt3x
+from pygt3x.reader import FileReader
+from pygt3x.calibrated_reader import CalibratedReader
 
 # Read raw data and calibrate
 # Dump to pandas data frame
-with gt3x.Gt3xFileReader("WRIST_rawLSB_032Hz.agdc") as gt3xReader:
-    calibratedReader =  gt3x.Gt3xCalibratedReader(gt3xReader)
-    df = calibratedReader.to_pandas()
+with FileReader("WRIST_rawLSB_032Hz.agdc") as reader:
+    calibrated_reader =  CalibratedReader(reader)
+    df = calibrated_reader.to_pandas()
     print(df.head(5))
 ```

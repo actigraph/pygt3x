@@ -2,7 +2,7 @@ from enum import Enum, unique
 
 
 @unique
-class Gt3xEventTypes(Enum):
+class Types(Enum):
     Activity = 0
     AntPlus = 1
     Battery = 2
