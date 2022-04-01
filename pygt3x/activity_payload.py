@@ -1,4 +1,4 @@
-import io
+import struct
 
 from pygt3x.bit_pack_acceleration import BitPackAcceleration
 from pygt3x.componenets import AccelerationSample
@@ -20,13 +20,9 @@ class Activity2Payload:
 
     @staticmethod
     def unpack_activity2(payload_bytes, timestamp):
-        stream = io.BytesIO(payload_bytes)
-        sample = [0, 0, 0]
-
-        for _ in range(0, int(len(payload_bytes) / 6)):
-            for axis in range(0, 3):
-                b = stream.read(2)
-                sample[axis] = int.from_bytes(b, byteorder="little", signed=True)
+        if (len(payload_bytes) % 6) != 0:
+            payload_bytes = payload_bytes[: -(len(payload_bytes) % 6) + 1]
+        for sample in struct.iter_unpack("<hhh", payload_bytes):
             yield AccelerationSample(timestamp, sample[0], sample[1], sample[2])
 
     def __init__(self, payload_bytes, timestamp):
