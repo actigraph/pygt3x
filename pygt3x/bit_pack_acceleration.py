@@ -1,5 +1,5 @@
 """Class for unpacking activity."""
-from pygt3x.componenets import AccelerationSample
+import numpy as np
 
 
 class BitPackAcceleration:
@@ -17,55 +17,18 @@ class BitPackAcceleration:
         Generator which produces acceleration samples as Int16 values
 
         """
-        offset = 0
-        index = -1
-        sample = [0, 0, 0]
-
-        def get_next_byte():
-            nonlocal index
-            index += 1
-            if index == len(source):
-                return None
-            return source[index]
-
-        current = 0
-        while True:
-            for axis in range(0, 3):
-                if (offset & 0x7) == 0:
-                    current = get_next_byte()
-                    if current is None:
-                        return
-
-                    shifter = (current & 0xFF) << 4
-                    offset += 8
-
-                    current = get_next_byte()
-                    if current is None:
-                        return
-
-                    shifter |= (current & 0xF0) >> 4
-                    offset += 4
-                else:
-                    shifter = (current & 0x0F) << 8
-                    offset += 4
-                    current = get_next_byte()
-                    if current is None:
-                        return
-
-                    shifter |= current & 0xFF
-                    offset += 8
-
-                if 0 != (shifter & 0x0800):
-                    shifter |= 0xF000
-
-                if shifter > 32767:
-                    shifter -= 65535
-                sample[axis] = shifter
-            if flip_xy:
-                yield AccelerationSample(
-                    timestamp, x=sample[1], y=sample[0], z=sample[2]
-                )
-            else:
-                yield AccelerationSample(
-                    timestamp, x=sample[0], y=sample[1], z=sample[2]
-                )
+        data = np.frombuffer(source, dtype=np.uint8)
+        fst_uint8, mid_uint8, lst_uint8 = (
+            np.reshape(data, (data.shape[0] // 3, 3)).astype(np.int16).T
+        )
+        fst_uint12 = (fst_uint8 << 4) + (mid_uint8 >> 4)
+        snd_uint12 = ((mid_uint8 % 16) << 8) + lst_uint8
+        concat = np.concatenate((fst_uint12[:, None], snd_uint12[:, None]), axis=1)
+        data = concat.reshape((-1, 3))
+        data[data > 2047] = data[data > 2047] - 4095
+        data = np.concatenate(
+            (np.array(timestamp).repeat(len(data)).reshape(-1, 1), data), axis=1
+        )
+        if flip_xy:
+            data = data[:, [1, 0, 2]]
+        return data
