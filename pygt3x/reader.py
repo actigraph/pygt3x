@@ -2,6 +2,7 @@ import io
 import json
 from zipfile import ZipFile
 
+import numpy as np
 import pandas as pd
 
 from pygt3x.activity_payload import Activity1Payload
@@ -75,15 +76,14 @@ class FileReader:
             else:
                 continue
 
-            for sample in payload.AccelerationSamples:
-                yield sample
+            yield payload.AccelerationSamples
 
     def to_pandas(self):
         """
         Returns acceleration data as pandas data frame
         """
         col_names = ["Timestamp", "X", "Y", "Z"]
-        data = self.get_acceleration()
+        data = np.concatenate(list(self.get_acceleration()))
         df = pd.DataFrame(data, columns=col_names)
         df.index = df["Timestamp"]
         del df["Timestamp"]
