@@ -3,6 +3,16 @@ import pytest
 
 
 @pytest.fixture
+def gt3x_file(resource_path_root):
+    return resource_path_root / "small.gt3x"
+
+
+@pytest.fixture
+def agdc_file(resource_path_root):
+    return resource_path_root / "WRIST_rawLSB_032Hz_test.agdc"
+
+
+@pytest.fixture
 def calibrated_csv_file(resource_path_root):
     return resource_path_root / "WRIST_rawCalibrated_032Hz.csv"
 

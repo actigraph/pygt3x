@@ -1,7 +1,5 @@
 import numpy as np
 
-from pygt3x.componenets import AccelerationSample
-
 
 class CalibrationV2Service:
     def __init__(self, calibration: dict, sample_rate: int):
@@ -39,17 +37,14 @@ class CalibrationV2Service:
             [[s11, s21, s31], [s12, s22, s32], [s13, s23, s33]]
         )
 
-    def calibrate_samples(self, samples):
-        for sample in samples:
-            calibrated_sample = np.matmul(
-                self.sensitivity_matrix,
-                (
-                    np.array([[sample.x, sample.y, sample.z]]) - self.offset_vector
+    def calibrate_samples(self, sample):
+        return np.concatenate(
+            (
+                sample[:, :-3],
+                np.matmul(
+                    self.sensitivity_matrix,
+                    (sample[:, -3:] - self.offset_vector).transpose(),
                 ).transpose(),
-            ).transpose()
-            yield AccelerationSample(
-                sample.timestamp,
-                calibrated_sample[0][0],
-                calibrated_sample[0][1],
-                calibrated_sample[0][2],
-            )
+            ),
+            axis=1,
+        )
