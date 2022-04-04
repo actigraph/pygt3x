@@ -4,7 +4,6 @@ from zipfile import ZipFile
 
 import numpy as np
 import pandas as pd
-
 from pygt3x.activity_payload import Activity1Payload
 from pygt3x.activity_payload import Activity2Payload
 from pygt3x.activity_payload import Activity3Payload
@@ -26,6 +25,9 @@ class FileReader:
         self.zipfile = ZipFile(self.file_name)
         self.logfile = self.zipfile.open("log.bin", "r")
         self.logreader = LogReader(self.logfile)
+        self.info = self.read_info()
+        self.calibration = self.read_calibration()
+
         return self
 
     def __exit__(self, typ, value, traceback):
