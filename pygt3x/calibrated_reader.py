@@ -13,7 +13,11 @@ class CalibratedReader:
 
     def __init__(self, source: FileReader):
         self.source = source
-        self.acceleration = np.concatenate(list(self.source.get_acceleration()))
+        data = list(self.source.get_acceleration())
+        if len(data) == 0:
+            self.acceleration = np.empty((0,4))
+        else:
+            self.acceleration = np.concatenate(data)
 
     def calibrate_acceleration(self):
         """Calibrates acceleration samples."""
