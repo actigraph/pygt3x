@@ -87,8 +87,7 @@ class FileReader:
         col_names = ["Timestamp", "X", "Y", "Z"]
         data = np.concatenate(list(self.get_acceleration()))
         df = pd.DataFrame(data, columns=col_names)
-        df.index = df["Timestamp"]
-        del df["Timestamp"]
+        df.set_index("Timestamp", drop=True, inplace=True)
         return df
 
 

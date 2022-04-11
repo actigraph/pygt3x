@@ -15,7 +15,7 @@ class CalibratedReader:
         self.source = source
         data = list(self.source.get_acceleration())
         if len(data) == 0:
-            self.acceleration = np.empty((0,4))
+            self.acceleration = np.empty((0, 4))
         else:
             self.acceleration = np.concatenate(data)
 
@@ -59,6 +59,6 @@ class CalibratedReader:
         col_names = ["Timestamp", "X", "Y", "Z"]
         data = self.calibrate_acceleration()
         df = pd.DataFrame(data, columns=col_names)
-        df.index = df["Timestamp"]
-        del df["Timestamp"]
+        df.set_index("Timestamp", drop=True, inplace=True)
+        df = df.apply(lambda x: pd.to_numeric(x, downcast="float"))
         return df
