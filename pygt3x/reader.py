@@ -40,7 +40,7 @@ class FileReader:
         """
         output = dict()
         with io.TextIOWrapper(
-                self.zipfile.open("info.txt", "r"), encoding="utf-8-sig"
+            self.zipfile.open("info.txt", "r"), encoding="utf-8-sig"
         ) as infoFile:
             for line in infoFile.readlines():
                 values = line.split(":")
