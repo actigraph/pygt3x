@@ -7,7 +7,7 @@ import pandas as pd
 from pygt3x.activity_payload import Activity1Payload
 from pygt3x.activity_payload import Activity2Payload
 from pygt3x.activity_payload import Activity3Payload
-from pygt3x.componenets import Info, RawEvent, Header
+from pygt3x.components import Info, RawEvent, Header
 from pygt3x.events import Types
 
 
@@ -44,8 +44,9 @@ class FileReader:
         ) as infoFile:
             for line in infoFile.readlines():
                 values = line.split(":")
-                if len(values) == 2:
-                    output[values[0].strip()] = values[1].strip()
+                # The format of TimeZone is this: "TimeZone: -04:00:00"
+                if len(values) == 2 or values[0] == "TimeZone":
+                    output[values[0].strip()] = ":".join(values[1:]).strip()
 
         return Info(output)
 
