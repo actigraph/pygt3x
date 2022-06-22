@@ -4,7 +4,7 @@ import struct
 
 class Header:
     """
-    Class for Gt3xHeader
+    GT3X Header.
 
     Attributes:
         separator (byte): Log separator value
@@ -15,6 +15,7 @@ class Header:
     """
 
     def __init__(self, header_bytes: bytes):
+        """Unpack header."""
         (separator, eventType, timestamp, payload_size) = struct.unpack(
             "<BBLH", header_bytes
         )
@@ -26,12 +27,12 @@ class Header:
 
 class RawEvent:
     """
-    Class for Gt3xRawEvent
+    Gt3xRawEvent class.
 
     Parameters:
         header: Gt3xHeader
-        payload (byte array): Log event payload as byte array
-        checksum (byte): Log event checksum
+        payload: Log event payload as byte array
+        checksum: Log event checksum
 
     Attributes:
         calibrated_acceleration: List[AccelerationSample]
@@ -39,15 +40,30 @@ class RawEvent:
 
     calibrated_acceleration = None
 
-    def __init__(self, header: Header, payload, checksum):
+    def __init__(self, header: Header, payload: bytes, checksum: bytes):
+        """Initialise fields."""
         self.header = header
         self.payload = payload
         self.checksum = checksum
 
 
 class Info(dict):
+    """Metadata class."""
+
     def get_sample_rate(self):
+        """Get sample rate.
+
+        Returns:
+        --------
+        File sample rate.
+        """
         return int(self["Sample Rate"])
 
     def get_acceleration_scale(self):
+        """Get acceleration scale.
+
+        Returns:
+        --------
+        Acceleration scale.
+        """
         return float(self["Acceleration Scale"])

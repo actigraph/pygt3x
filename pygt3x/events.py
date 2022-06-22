@@ -1,8 +1,11 @@
+"""Event types."""
 from enum import Enum, unique
 
 
 @unique
 class Types(Enum):
+    """Enum of event types."""
+
     Activity = 0
     AntPlus = 1
     Battery = 2
