@@ -1,7 +1,6 @@
 import pytest
 
-from pygt3x.calibrated_reader import CalibratedReader
-from pygt3x.callibration_v2_service import CalibrationV2Service
+from pygt3x.calibration import CalibratedReader, CalibrationV2Service
 from pygt3x.reader import FileReader
 
 test_calibration = {
@@ -28,26 +27,16 @@ test_calibration = {
 
 def test_read(gt3x_file):
     with FileReader(gt3x_file) as reader:
-        uncalibrated_df = reader.to_pandas()
+        uncalibrated_df = reader.to_pandas().mean()
     with FileReader(gt3x_file) as reader:
         calibrated = CalibratedReader(reader)
-        df = calibrated.to_pandas()
-    assert uncalibrated_df.mean().X == pytest.approx(-81.00577955496315)
-    assert uncalibrated_df.mean().Y == pytest.approx(81.83382946425266)
-    assert uncalibrated_df.mean().Z == pytest.approx(64.99580386784652)
-    assert df.mean().X == pytest.approx(-0.3164288263865748)
-    assert df.mean().Y == pytest.approx(0.31966339634473695)
-    assert df.mean().Z == pytest.approx(0.25388985885877546)
-
-
-def test_read_agdc(agdc_file):
-
-    with FileReader(agdc_file) as reader:
-        calibrated = CalibratedReader(reader)
-        df = calibrated.to_pandas()
-    assert df.mean().X == pytest.approx(1.118586370635872)
-    assert df.mean().Y == pytest.approx(0.4294534356312101)
-    assert df.mean().Z == pytest.approx(-0.08104933668082379)
+        df = calibrated.to_pandas().mean()
+    assert uncalibrated_df.X == pytest.approx(-81.00577955496315)
+    assert uncalibrated_df.Y == pytest.approx(81.83382946425266)
+    assert uncalibrated_df.Z == pytest.approx(64.99580386784652)
+    assert df.X == pytest.approx(-0.3164288263865748)
+    assert df.Y == pytest.approx(0.31966339634473695)
+    assert df.Z == pytest.approx(0.25388985885877546)
 
 
 def test_calibrate_32hz(calibrated_dataframe, wrist_dataframe):
