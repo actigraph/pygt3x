@@ -7,11 +7,11 @@ from zipfile import ZipFile
 import numpy as np
 import pandas as pd
 
+from pygt3x import Types
 from pygt3x.activity_payload import Activity1Payload, NHANESPayload
 from pygt3x.activity_payload import Activity2Payload
 from pygt3x.activity_payload import Activity3Payload
 from pygt3x.components import Info, RawEvent, Header
-from pygt3x.events import Types
 
 
 class FileReader:

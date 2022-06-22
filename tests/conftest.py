@@ -18,6 +18,11 @@ def v1_file(resource_path_root):
 
 
 @pytest.fixture
+def v1_gt(resource_path_root):
+    return resource_path_root / "neo.csv"
+
+
+@pytest.fixture
 def calibrated_csv_file(resource_path_root):
     return resource_path_root / "WRIST_rawCalibrated_032Hz.csv"
 

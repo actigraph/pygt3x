@@ -17,12 +17,15 @@ class NHANESPayload:
         Sampling rate
     """
 
+    SCALE = 341
+
     def __init__(self, source, start_date: int, sample_rate: float):
         """Read payload."""
         payload_bytes = source.read()
-        data = np.round(BitPackAcceleration.unpack(payload_bytes) / 341.0, 2).reshape(
-            (-1, 3)
-        )
+        data = np.round(
+            BitPackAcceleration.unpack(payload_bytes) / NHANESPayload.SCALE, 3
+        ).reshape((-1, 3))
+        data = data[:, [1, 0, 2]]
         time = ((np.ones(data.shape[0]).cumsum() - 1) / sample_rate) + start_date / 1e9
         self.AccelerationSamples = np.concatenate((time.reshape((-1, 1)), data), axis=1)
 
