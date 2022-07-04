@@ -2,8 +2,8 @@
 from typing import Dict
 
 import numpy as np
-from numpy import typing as npt
 import pandas as pd
+from numpy import typing as npt
 
 from pygt3x.reader import FileReader
 
@@ -112,7 +112,7 @@ class CalibratedReader:
 
         if calibration is None or calibration["isCalibrated"]:
             # Data is already calibrated, so just return unscaled values
-            accel_scale = info.get_acceleration_scale()
+            accel_scale = info.acceleration_scale
             calibrated_acceleration = np.concatenate(
                 (
                     acceleration[:, :-3],
@@ -122,7 +122,7 @@ class CalibratedReader:
             )
         elif calibration["calibrationMethod"] == 2:
             # Use calibration method 2 to calibrate activity
-            sample_rate = info.get_sample_rate()
+            sample_rate = info.sample_rate
             calibrated_acceleration = self.calibrate_v2(
                 acceleration, calibration, sample_rate
             )
