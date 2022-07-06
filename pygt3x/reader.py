@@ -1,6 +1,5 @@
 """Read data from files."""
 
-import io
 import json
 from zipfile import ZipFile
 
@@ -8,10 +7,13 @@ import numpy as np
 import pandas as pd
 
 from pygt3x import Types
-from pygt3x.activity_payload import Activity1Payload, NHANESPayload
-from pygt3x.activity_payload import Activity2Payload
-from pygt3x.activity_payload import Activity3Payload
-from pygt3x.components import Info, RawEvent, Header
+from pygt3x.activity_payload import (
+    Activity1Payload,
+    Activity2Payload,
+    Activity3Payload,
+    NHANESPayload,
+)
+from pygt3x.components import Header, Info, RawEvent
 
 
 class FileReader:
@@ -38,7 +40,7 @@ class FileReader:
             self.logreader = None
             self.logfile = self.zipfile.open("log.txt", "r")
             self.activity_file = self.zipfile.open("activity.bin", "r")
-        self.info = self.read_info()
+        self.info = Info(self.zipfile)
         self.calibration = self.read_calibration()
 
         return self
@@ -48,26 +50,12 @@ class FileReader:
         self.logfile.__exit__(typ, value, traceback)
         self.zipfile.__exit__(typ, value, traceback)
 
-    def read_info(self):
-        """Parse info.txt and returns dictionary with key/value pairs."""
-        output = dict()
-        with io.TextIOWrapper(
-            self.zipfile.open("info.txt", "r"), encoding="utf-8-sig"
-        ) as infoFile:
-            for line in infoFile.readlines():
-                values = line.split(":")
-                # The format of TimeZone is this: "TimeZone: -04:00:00"
-                if len(values) == 2 or values[0] == "TimeZone":
-                    output[values[0].strip()] = ":".join(values[1:]).strip()
-
-        return Info(output)
-
     def read_calibration(self):
         """Read calibration info from file."""
         if "calibration.json" not in self.zipfile.namelist():
             return None
-        with self.zipfile.open("calibration.json") as calibrationFile:
-            calibration = json.load(calibrationFile)
+        with self.zipfile.open("calibration.json") as f:
+            calibration = json.load(f)
             return calibration
 
     def read_events(self, num_rows=None):
@@ -98,21 +86,23 @@ class FileReader:
         """
         if self.logreader:
             for evt in self.read_events(num_rows):
-                # An 'Activity' (id: 0x00) log record type with a 1-byte payload is captured on a USB connection event
-                # (and does not represent a reading from the activity monitor's accelerometer). This event is captured
-                # upon docking the activity monitor (via USB) to a PC or CentrePoint Data Hub (CDH) device. Therefore
-                # such records cannot be parsed as the traditional activity log records and can be ignored.
+                # An 'Activity' (id: 0x00) log record type with a 1-byte payload is
+                # captured on a USB connection event (and does not represent a reading
+                # from the activity monitor's accelerometer). This event is captured
+                # upon docking the activity monitor (via USB) to a PC or CentrePoint
+                # Data Hub (CDH) device. Therefore, such records cannot be parsed as the
+                # traditional activity log records and can be ignored.
                 if (
-                    Types(evt.header.eventType) == Types.Activity
+                    Types(evt.header.event_type) == Types.Activity
                     and evt.header.payload_size == 1
                 ):
                     continue
 
-                if Types(evt.header.eventType) == Types.Activity3:
+                if Types(evt.header.event_type) == Types.Activity3:
                     payload = Activity3Payload(evt.payload, evt.header.timestamp)
-                elif Types(evt.header.eventType) == Types.Activity2:
+                elif Types(evt.header.event_type) == Types.Activity2:
                     payload = Activity2Payload(evt.payload, evt.header.timestamp)
-                elif Types(evt.header.eventType) == Types.Activity:
+                elif Types(evt.header.event_type) == Types.Activity:
                     payload = Activity1Payload(evt.payload, evt.header.timestamp)
                 else:
                     continue
@@ -120,8 +110,8 @@ class FileReader:
         else:
             payload = NHANESPayload(
                 self.activity_file,
-                int(self.info["Start Date"]),
-                self.info.get_sample_rate(),
+                self.info.start_date,
+                self.info.sample_rate,
             )
             yield payload.AccelerationSamples
 
