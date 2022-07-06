@@ -48,7 +48,7 @@ class Activity1Payload:
         data = np.concatenate(
             (np.array(timestamp).repeat(len(data)).reshape(-1, 1), data), axis=1
         )
-        data = data[:, [1, 0, 2]]
+        data = data[:, [0, 2, 1, 3]]
         self.AccelerationSamples = data
 
 
