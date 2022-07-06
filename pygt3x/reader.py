@@ -98,6 +98,13 @@ class FileReader:
         """
         if self.logreader:
             for evt in self.read_events(num_rows):
+                # An 'Activity' (id: 0x00) log record type with a 1-byte payload is captured on a USB connection event
+                # (and does not represent a reading from the activity monitor's accelerometer). This event is captured
+                # upon docking the activity monitor (via USB) to a PC or CentrePoint Data Hub (CDH) device. Therefore
+                # such records cannot be parsed as the traditional activity log records and can be ignored.
+                if Types(evt.header.eventType) == Types.Activity and evt.header.payload_size==1:
+                    continue
+
                 if Types(evt.header.eventType) == Types.Activity3:
                     payload = Activity3Payload(evt.payload, evt.header.timestamp)
                 elif Types(evt.header.eventType) == Types.Activity2:
