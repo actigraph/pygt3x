@@ -61,13 +61,14 @@ class RawEvent:
 
     def __post_init__(self, checksum):
         new_checksum = self.header.separator ^ self.header.event_type
-        timestamp = self.header.timestamp
-        new_checksum ^= timestamp & 0xFF
-        new_checksum ^= (timestamp >> 8) & 0xFF
-        new_checksum ^= (timestamp >> 16) & 0xFF
-        new_checksum ^= (timestamp >> 24) & 0xFF
-        new_checksum ^= self.header.payload_size & 0xFF
-        new_checksum ^= (self.header.payload_size >> 8) & 0xFF
+        timestamp = self.header.timestamp.to_bytes(4, 'little')
+        new_checksum = np.bitwise_xor.reduce(
+            np.frombuffer(timestamp, dtype=np.uint8), initial=new_checksum
+        )
+        payload_size = self.header.payload_size.to_bytes(4, 'little')
+        new_checksum = np.bitwise_xor.reduce(
+            np.frombuffer(payload_size, dtype=np.uint8), initial=new_checksum
+        )
         new_checksum = np.bitwise_xor.reduce(
             np.frombuffer(self.payload, dtype=np.uint8), initial=new_checksum
         )
