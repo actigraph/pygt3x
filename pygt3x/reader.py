@@ -1,6 +1,7 @@
 """Read data from files."""
 
 import json
+import logging
 from zipfile import ZipFile
 
 import numpy as np
@@ -88,7 +89,7 @@ class FileReader:
             for evt in self.read_events(num_rows):
                 try:
                     type = Types(evt.header.event_type)
-                except:
+                except ValueError:
                     logging.warning(f"Unsupported event type {evt.header.event_type}")
                     continue
                 # An 'Activity' (id: 0x00) log record type with a 1-byte payload is
