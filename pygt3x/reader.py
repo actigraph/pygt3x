@@ -98,18 +98,22 @@ class FileReader:
 
                 # Idle sleep mode is encoded as an event with payload 8 when entering
                 # and 09 when leaving.
-                if type == Types.Event and evt.payload == b'\x08':
+                if type == Types.Event and evt.payload == b"\x08":
                     assert idle_sleep_mode_started is None
                     idle_sleep_mode_started = evt.header.timestamp
                     continue
-                if type == Types.Event and evt.payload == b'\x09':
+                if type == Types.Event and evt.payload == b"\x09":
                     assert idle_sleep_mode_started is not None
                     assert last_values is not None
                     idle_sleep_mode_ended = evt.header.timestamp
-                    timestamps = np.arange(
-                        idle_sleep_mode_started, idle_sleep_mode_ended
-                    ).repeat(self.info.sample_rate).reshape(-1,1)
-                    values = last_values.reshape((1,3)).repeat(timestamps.shape[0], axis=0)
+                    timestamps = (
+                        np.arange(idle_sleep_mode_started, idle_sleep_mode_ended)
+                        .repeat(self.info.sample_rate)
+                        .reshape(-1, 1)
+                    )
+                    values = last_values.reshape((1, 3)).repeat(
+                        timestamps.shape[0], axis=0
+                    )
                     idle_sleep_mode_started = None
                     yield np.concatenate((timestamps, values), axis=1)
 

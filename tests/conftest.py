@@ -26,6 +26,7 @@ def v1_gt(resource_path_root):
 def calibrated_csv_file(resource_path_root):
     return resource_path_root / "WRIST_rawCalibrated_032Hz.csv"
 
+
 @pytest.fixture
 def ism_enabled_file(resource_path_root):
     return resource_path_root / "ISM_Enabled.gt3x"
