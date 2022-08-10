@@ -60,6 +60,7 @@ class FileReader:
             return calibration
 
     def _fill_ism(self, idle_sleep_mode_started, idle_sleep_mode_ended, last_values):
+        """Fill in gaps created by idle sleep mode."""
         timestamps = (
             np.arange(idle_sleep_mode_started, idle_sleep_mode_ended)
             .repeat(self.info.sample_rate)
@@ -142,6 +143,7 @@ class FileReader:
                 if payload.shape[0] > 0:
                     last_values = payload[-1, 1:]
                 yield payload
+
             if idle_sleep_mode_started is not None:
                 # Idle sleep mode was started but not finished before the recording
                 # ended. This means that we are missing some records at the end of the
