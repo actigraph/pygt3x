@@ -1,6 +1,3 @@
-import pandas as pd
-import pytest
-
 from pygt3x.calibration import CalibratedReader
 from pygt3x.reader import FileReader
 

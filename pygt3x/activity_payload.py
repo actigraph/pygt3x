@@ -2,6 +2,9 @@
 import numpy as np
 
 
+NHANSE_SCALE = 341
+
+
 def unpack_bitpack_acceleration(source: bytes):
     """
     Unpack activity stored as sets of 3, 12-bit integers.
@@ -42,11 +45,10 @@ def read_nhanse_payload(source, start_date: int, sample_rate: float):
     sample_rate:
         Sampling rate
     """
-    SCALE = 341
     payload_bytes = source.read()
-    data = np.round(unpack_bitpack_acceleration(payload_bytes) / SCALE, 3).reshape(
-        (-1, 3)
-    )
+    data = np.round(
+        unpack_bitpack_acceleration(payload_bytes) / NHANSE_SCALE, 3
+    ).reshape((-1, 3))
     data = data[:, [1, 0, 2]]
     time = ((np.ones(data.shape[0]).cumsum() - 1) / sample_rate) + start_date / 1e9
     return np.concatenate((time.reshape((-1, 1)), data), axis=1)
@@ -101,7 +103,6 @@ def read_activity3_payload(payload_bytes, timestamp):
     timestamp:
         Event timestamp
     """
-
     data = unpack_bitpack_acceleration(payload_bytes)
     data = np.concatenate(
         (np.array(timestamp).repeat(len(data)).reshape(-1, 1), data), axis=1
