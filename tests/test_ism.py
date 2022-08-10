@@ -13,5 +13,8 @@ def test_ism_enabled(ism_enabled_file, ism_disabled_file):
         calibrated = CalibratedReader(reader)
         df_disabled = calibrated.to_pandas()
     assert (df_enabled.X.groupby(level=0).count() == 30).all()
-    assert (df_enabled.loc[1616169537:1616169574, "X"] == df_enabled.loc[1616169537:1616169574, "X"].iloc[0]).all()
+    assert (
+        df_enabled.loc[1616169537:1616169574, "X"]
+        == df_enabled.loc[1616169537:1616169574, "X"].iloc[0]
+    ).all()
     assert (df_enabled.index == df_disabled.index[:5370]).all()
