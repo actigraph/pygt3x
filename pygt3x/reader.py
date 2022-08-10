@@ -1,6 +1,7 @@
 """Read data from files."""
 
 import json
+import logging
 from zipfile import ZipFile
 
 import numpy as np
@@ -86,23 +87,25 @@ class FileReader:
         """
         if self.logreader:
             for evt in self.read_events(num_rows):
+                try:
+                    type = Types(evt.header.event_type)
+                except ValueError:
+                    logging.warning(f"Unsupported event type {evt.header.event_type}")
+                    continue
                 # An 'Activity' (id: 0x00) log record type with a 1-byte payload is
                 # captured on a USB connection event (and does not represent a reading
                 # from the activity monitor's accelerometer). This event is captured
                 # upon docking the activity monitor (via USB) to a PC or CentrePoint
                 # Data Hub (CDH) device. Therefore, such records cannot be parsed as the
                 # traditional activity log records and can be ignored.
-                if (
-                    Types(evt.header.event_type) == Types.Activity
-                    and evt.header.payload_size == 1
-                ):
+                if type == Types.Activity and evt.header.payload_size == 1:
                     continue
 
-                if Types(evt.header.event_type) == Types.Activity3:
+                if type == Types.Activity3:
                     payload = Activity3Payload(evt.payload, evt.header.timestamp)
-                elif Types(evt.header.event_type) == Types.Activity2:
+                elif type == Types.Activity2:
                     payload = Activity2Payload(evt.payload, evt.header.timestamp)
-                elif Types(evt.header.event_type) == Types.Activity:
+                elif type == Types.Activity:
                     payload = Activity1Payload(evt.payload, evt.header.timestamp)
                 else:
                     continue
@@ -149,5 +152,8 @@ class LogReader:
         checksum = self.source.read(1)
         if not checksum:
             return None
-        raw_event = RawEvent(header, payload_bytes, checksum)
+        try:
+            raw_event = RawEvent(header, payload_bytes, checksum)
+        except ValueError:
+            return None
         return raw_event

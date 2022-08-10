@@ -1,7 +1,10 @@
 """GT3x header structure."""
 import io
+import logging
 import struct
-from dataclasses import dataclass
+from dataclasses import dataclass, InitVar
+
+import numpy as np
 
 
 @dataclass
@@ -54,7 +57,26 @@ class RawEvent:
 
     header: Header
     payload: bytes
-    checksum: bytes
+    checksum: InitVar[bytes]
+
+    def __post_init__(self, checksum: bytes):
+        """Verify event's checksum."""
+        new_checksum = self.header.separator ^ self.header.event_type
+        timestamp = self.header.timestamp.to_bytes(4, "little")
+        new_checksum = np.bitwise_xor.reduce(
+            np.frombuffer(timestamp, dtype=np.uint8), initial=new_checksum
+        )
+        payload_size = self.header.payload_size.to_bytes(4, "little")
+        new_checksum = np.bitwise_xor.reduce(
+            np.frombuffer(payload_size, dtype=np.uint8), initial=new_checksum
+        )
+        new_checksum = np.bitwise_xor.reduce(
+            np.frombuffer(self.payload, dtype=np.uint8), initial=new_checksum
+        )
+        new_checksum = int(~new_checksum & 0xFF)
+        if new_checksum.to_bytes(1, "little") != checksum:
+            logging.error(f"Corrupted event at {self.header.timestamp}.")
+            raise ValueError("Event checksum does not match.")
 
 
 @dataclass
