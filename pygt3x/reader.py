@@ -59,6 +59,16 @@ class FileReader:
             calibration = json.load(f)
             return calibration
 
+    def _fill_ism(self, idle_sleep_mode_started, idle_sleep_mode_ended, last_values):
+        timestamps = (
+            np.arange(idle_sleep_mode_started, idle_sleep_mode_ended)
+            .repeat(self.info.sample_rate)
+            .reshape(-1, 1)
+        )
+        values = last_values.reshape((1, 3)).repeat(timestamps.shape[0], axis=0)
+
+        return np.concatenate((timestamps, values), axis=1)
+
     def read_events(self, num_rows=None):
         """Read events from file.
 
@@ -105,17 +115,12 @@ class FileReader:
                 if type == Types.Event and evt.payload == b"\x09":
                     assert idle_sleep_mode_started is not None
                     assert last_values is not None
-                    idle_sleep_mode_ended = evt.header.timestamp
-                    timestamps = (
-                        np.arange(idle_sleep_mode_started, idle_sleep_mode_ended)
-                        .repeat(self.info.sample_rate)
-                        .reshape(-1, 1)
-                    )
-                    values = last_values.reshape((1, 3)).repeat(
-                        timestamps.shape[0], axis=0
+
+                    payload = self._fill_ism(
+                        idle_sleep_mode_started, evt.header.timestamp, last_values
                     )
                     idle_sleep_mode_started = None
-                    yield np.concatenate((timestamps, values), axis=1)
+                    yield payload
 
                 # An 'Activity' (id: 0x00) log record type with a 1-byte payload is
                 # captured on a USB connection event (and does not represent a reading
@@ -137,6 +142,16 @@ class FileReader:
                 if payload.shape[0] > 0:
                     last_values = payload[-1, 1:]
                 yield payload
+            if idle_sleep_mode_started is not None:
+                # Idle sleep mode was started but not finished before the recording
+                # ended. This means that we are missing some records at the end of the
+                # file.
+                idle_sleep_mode_ended = evt.header.timestamp
+                payload = self._fill_ism(
+                    idle_sleep_mode_started, idle_sleep_mode_ended, last_values
+                )
+                yield payload
+
         else:
             payload = read_nhanse_payload(
                 self.activity_file,
