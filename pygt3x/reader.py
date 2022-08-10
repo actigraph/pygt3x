@@ -86,12 +86,33 @@ class FileReader:
             Number of events to read.
         """
         if self.logreader:
+            idle_sleep_mode_started = None
+            # This is used for filling in gaps created by idle sleep mode
+            last_values = None
             for evt in self.read_events(num_rows):
                 try:
                     type = Types(evt.header.event_type)
                 except ValueError:
                     logging.warning(f"Unsupported event type {evt.header.event_type}")
                     continue
+
+                # Idle sleep mode is encoded as an event with payload 8 when entering
+                # and 09 when leaving.
+                if type == Types.Event and evt.payload == 8:
+                    assert idle_sleep_mode_started is None
+                    idle_sleep_mode_started = evt.header.timestamp
+                    continue
+                if type == Types.Event and evt.payload == 9:
+                    assert idle_sleep_mode_started is not None
+                    assert last_values is not None
+                    idle_sleep_mode_ended = evt.header.timestamp
+                    timestamps = np.arange(
+                        idle_sleep_mode_started, idle_sleep_mode_ended
+                    ).repeat(self.info.sample_rate)
+                    values = last_values.repeat(timestamps.shape[0], axis=1)
+                    idle_sleep_mode_started = None
+                    yield np.concatenate(timestamps, values, axis=0)
+
                 # An 'Activity' (id: 0x00) log record type with a 1-byte payload is
                 # captured on a USB connection event (and does not represent a reading
                 # from the activity monitor's accelerometer). This event is captured
@@ -109,6 +130,7 @@ class FileReader:
                     payload = Activity1Payload(evt.payload, evt.header.timestamp)
                 else:
                     continue
+                last_values = payload.AccelerationSamples[-1, 1:]
                 yield payload.AccelerationSamples
         else:
             payload = NHANESPayload(

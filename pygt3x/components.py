@@ -2,9 +2,11 @@
 import io
 import logging
 import struct
-from dataclasses import dataclass, InitVar
+from dataclasses import InitVar, dataclass
+from datetime import datetime
 
 import numpy as np
+import pandas as pd
 
 
 @dataclass
