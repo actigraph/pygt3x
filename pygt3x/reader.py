@@ -9,10 +9,10 @@ import pandas as pd
 
 from pygt3x import Types
 from pygt3x.activity_payload import (
-    Activity1Payload,
-    Activity2Payload,
-    Activity3Payload,
-    NHANESPayload,
+    read_activity1_payload,
+    read_activity2_payload,
+    read_activity3_payload,
+    read_nhanse_payload,
 )
 from pygt3x.components import Header, Info, RawEvent
 
@@ -98,20 +98,20 @@ class FileReader:
 
                 # Idle sleep mode is encoded as an event with payload 8 when entering
                 # and 09 when leaving.
-                if type == Types.Event and evt.payload == 8:
+                if type == Types.Event and evt.payload == b'\x08':
                     assert idle_sleep_mode_started is None
                     idle_sleep_mode_started = evt.header.timestamp
                     continue
-                if type == Types.Event and evt.payload == 9:
+                if type == Types.Event and evt.payload == b'\x09':
                     assert idle_sleep_mode_started is not None
                     assert last_values is not None
                     idle_sleep_mode_ended = evt.header.timestamp
                     timestamps = np.arange(
                         idle_sleep_mode_started, idle_sleep_mode_ended
-                    ).repeat(self.info.sample_rate)
-                    values = last_values.repeat(timestamps.shape[0], axis=1)
+                    ).repeat(self.info.sample_rate).reshape(-1,1)
+                    values = last_values.reshape((1,3)).repeat(timestamps.shape[0], axis=0)
                     idle_sleep_mode_started = None
-                    yield np.concatenate(timestamps, values, axis=0)
+                    yield np.concatenate((timestamps, values), axis=1)
 
                 # An 'Activity' (id: 0x00) log record type with a 1-byte payload is
                 # captured on a USB connection event (and does not represent a reading
@@ -123,22 +123,23 @@ class FileReader:
                     continue
 
                 if type == Types.Activity3:
-                    payload = Activity3Payload(evt.payload, evt.header.timestamp)
+                    payload = read_activity3_payload(evt.payload, evt.header.timestamp)
                 elif type == Types.Activity2:
-                    payload = Activity2Payload(evt.payload, evt.header.timestamp)
+                    payload = read_activity2_payload(evt.payload, evt.header.timestamp)
                 elif type == Types.Activity:
-                    payload = Activity1Payload(evt.payload, evt.header.timestamp)
+                    payload = read_activity1_payload(evt.payload, evt.header.timestamp)
                 else:
                     continue
-                last_values = payload.AccelerationSamples[-1, 1:]
-                yield payload.AccelerationSamples
+                if payload.shape[0] > 0:
+                    last_values = payload[-1, 1:]
+                yield payload
         else:
-            payload = NHANESPayload(
+            payload = read_nhanse_payload(
                 self.activity_file,
                 self.info.start_date,
                 self.info.sample_rate,
             )
-            yield payload.AccelerationSamples
+            yield payload
 
     def to_pandas(self):
         """Return acceleration data as pandas data frame."""
