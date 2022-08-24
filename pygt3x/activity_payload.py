@@ -1,6 +1,7 @@
 """Binary payload parsing."""
-import numpy as np
+import struct
 
+import numpy as np
 
 NHANSE_SCALE = 341
 
@@ -30,6 +31,32 @@ def unpack_bitpack_acceleration(source: bytes):
     data[data > 2047] = data[data > 2047] + 61440
 
     return data.astype(np.int16)
+
+
+def unpack_bitpack_temperature(source: bytes):
+    """
+    Unpack temperature stored as sets of 3 bytes.
+
+    Parameters:
+    -----------
+    source:
+        Temperature payload bytes array
+
+    Returns:
+    --------
+    Temperature samples as Int16 values
+
+    """
+    data = np.empty((1, 2))
+    for i in range(len(source) // 3):
+        sensor = source[i * 3]
+        if sensor == 0:
+            (value,) = struct.unpack("<H", source[i * 3 + 1 : (i + 1) * 3])
+        else:
+            assert sensor == 1
+            (value,) = struct.unpack("<h", source[i * 3 + 1 : (i + 1) * 3])
+        data[0, sensor] = value
+    return data
 
 
 def read_nhanse_payload(source, start_date: int, sample_rate: float):
@@ -104,6 +131,23 @@ def read_activity3_payload(payload_bytes, timestamp):
         Event timestamp
     """
     data = unpack_bitpack_acceleration(payload_bytes)
+    data = np.concatenate(
+        (np.array(timestamp).repeat(len(data)).reshape(-1, 1), data), axis=1
+    )
+    return data
+
+
+def read_temperature_payload(payload_bytes, timestamp):
+    """Parse Temperature Payload.
+
+    Parameters:
+    -----------
+    payload_bytes:
+        Data bytes
+    timestamp:
+        Event timestamp
+    """
+    data = unpack_bitpack_temperature(payload_bytes)
     data = np.concatenate(
         (np.array(timestamp).repeat(len(data)).reshape(-1, 1), data), axis=1
     )

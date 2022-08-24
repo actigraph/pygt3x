@@ -1,6 +1,9 @@
 import pandas as pd
 import pytest
 
+from pygt3x.calibration import CalibratedReader
+from pygt3x.reader import FileReader
+
 
 @pytest.fixture
 def gt3x_file(resource_path_root):
@@ -10,6 +13,81 @@ def gt3x_file(resource_path_root):
 @pytest.fixture
 def agdc_file(resource_path_root):
     return resource_path_root / "WRIST_rawLSB_032Hz_test.agdc"
+
+
+@pytest.fixture(scope="package")
+def agdc_file_with_temperature(resource_path_root):
+    return resource_path_root / "temperature" / "CPW1C48210013_baseline.agdc"
+
+
+@pytest.fixture(scope="package")
+def agdc_temperature(agdc_file_with_temperature):
+    with FileReader(agdc_file_with_temperature) as reader:
+        df = reader.temperature_to_pandas()
+    return df
+
+
+@pytest.fixture(scope="package")
+def agdc_temperature_cal(agdc_file_with_temperature):
+    with FileReader(agdc_file_with_temperature) as reader:
+        calibrated = CalibratedReader(reader)
+        df = calibrated.temperature_to_pandas()
+    return df
+
+
+@pytest.fixture
+def agdc_file_temperature_acc_cal(resource_path_root):
+    file = (
+        resource_path_root
+        / "temperature"
+        / "Csv_Calibrated"
+        / "CPW1C48210013_baseline_acceleration_calibrated.csv"
+    )
+    return pd.read_csv(file)
+
+
+@pytest.fixture
+def agdc_file_temperature_adxl(resource_path_root):
+    file = (
+        resource_path_root
+        / "temperature"
+        / "Csv_ADC"
+        / "CPW1C48210013_baseline_temperature_ADXL_ADC.csv"
+    )
+    return pd.read_csv(file)
+
+
+@pytest.fixture
+def agdc_file_temperature_mcu(resource_path_root):
+    file = (
+        resource_path_root
+        / "temperature"
+        / "Csv_ADC"
+        / "CPW1C48210013_baseline_temperature_MCU_ADC.csv"
+    )
+    return pd.read_csv(file)
+
+
+@pytest.fixture
+def agdc_file_temperature_adxl_cal(resource_path_root):
+    file = (
+        resource_path_root
+        / "temperature"
+        / "Csv_Calibrated"
+        / "CPW1C48210013_baseline_temperature_ADXL_calibrated.csv"
+    )
+    return pd.read_csv(file)
+
+
+@pytest.fixture
+def agdc_file_temperature_mcu_cal(resource_path_root):
+    file = (
+        resource_path_root
+        / "temperature"
+        / "Csv_Calibrated"
+        / "CPW1C48210013_baseline_temperature_MCU_calibrated.csv"
+    )
+    return pd.read_csv(file)
 
 
 @pytest.fixture

@@ -28,7 +28,6 @@ test_calibration = {
 def test_read(gt3x_file):
     with FileReader(gt3x_file) as reader:
         uncalibrated_df = reader.to_pandas().mean()
-    with FileReader(gt3x_file) as reader:
         calibrated = CalibratedReader(reader)
         df = calibrated.to_pandas().mean()
     assert uncalibrated_df.X == pytest.approx(-76.12080934330498)
