@@ -98,17 +98,14 @@ class CalibratedReader:
     def __init__(self, source: FileReader):
         """Initialise fields."""
         self.source = source
-        data = list(self.source.get_acceleration())
-        if len(data) == 0:
-            self.acceleration = np.empty((0, 4))
-        else:
-            self.acceleration = np.concatenate(data)
+        if source.acceleration.size == 0:
+            source.get_data()
 
     def calibrate_acceleration(self):
         """Calibrates acceleration samples."""
         calibration = self.source.calibration
         info = self.source.info
-        acceleration = self.acceleration
+        acceleration = self.source.acceleration
 
         if calibration is None or calibration["isCalibrated"]:
             # Data is already calibrated, so just return unscaled values
@@ -123,8 +120,9 @@ class CalibratedReader:
         elif calibration["calibrationMethod"] == 2:
             # Use calibration method 2 to calibrate activity
             sample_rate = info.sample_rate
-            calibrated_acceleration = self.calibrate_v2(
-                acceleration, calibration, sample_rate
+            calibration_service = CalibrationV2Service(calibration, sample_rate)
+            calibrated_acceleration = calibration_service.calibrate_samples(
+                acceleration
             )
         else:
             raise NotImplementedError(
@@ -132,28 +130,53 @@ class CalibratedReader:
             )
         return calibrated_acceleration
 
-    @staticmethod
-    def calibrate_v2(
-        samples: npt.NDArray, calibration: Dict[str, int], sample_rate: int
-    ):
-        """Calibrates acceleration samples.
+    def calibrate_temperature(self):
+        """Calibrates acceleration samples."""
+        calibration = self.source.temperature_calibration
+        temperature = self.source.temperature
 
-        Parameters:
-        -----------
-        sample
-            Acceleration data
-        calibration
-            Calibration info
-        sample_rate
-            File sample rate
-        """
-        calibration_service = CalibrationV2Service(calibration, sample_rate)
-        return calibration_service.calibrate_samples(samples)
+        if calibration is None or calibration["isCalibrated"]:
+            # Data is already calibrated, so just return
+            calibrated_temperature = temperature
+        elif calibration["calibrationMethod"] == 1:
+            # Use calibration method 1 to calibrate temperature
+            calibrated_temperature = temperature
+            adxl_temp = temperature[:, 2]
+            adxl_gain = (calibration["tempHigh"] - calibration["tempLow"]) / (
+                calibration["adxlTempHigh"] - calibration["adxlTempLow"]
+            )
+            adxl_temp = (
+                adxl_temp - calibration["adxlTempLow"]
+            ) * adxl_gain + calibration["tempLow"]
+            temperature[:, 2] = adxl_temp
+            mcu_temp = temperature[:, 1]
+            mcu_gain = (calibration["tempHigh"] - calibration["tempLow"]) / (
+                calibration["mcuTempHigh"] - calibration["mcuTempLow"]
+            )
+            mcu_temp = (mcu_temp - calibration["mcuTempLow"]) * mcu_gain + calibration[
+                "tempLow"
+            ]
+            temperature[:, 1] = mcu_temp
+
+        else:
+            raise NotImplementedError(
+                f"Unknown calibration method: " f"{calibration['calibrationMethod']}"
+            )
+        return calibrated_temperature
 
     def to_pandas(self):
         """Return acceleration data as pandas data frame."""
         col_names = ["Timestamp", "X", "Y", "Z"]
         data = self.calibrate_acceleration()
+        df = pd.DataFrame(data, columns=col_names)
+        df.set_index("Timestamp", drop=True, inplace=True)
+        df = df.apply(lambda x: pd.to_numeric(x, downcast="float"))
+        return df
+
+    def temperature_to_pandas(self):
+        """Return acceleration data as pandas data frame."""
+        col_names = ["Timestamp", "TemperatureMCU", "TemperatureADXL"]
+        data = self.calibrate_temperature()
         df = pd.DataFrame(data, columns=col_names)
         df.set_index("Timestamp", drop=True, inplace=True)
         df = df.apply(lambda x: pd.to_numeric(x, downcast="float"))

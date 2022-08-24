@@ -13,6 +13,7 @@ from pygt3x.activity_payload import (
     read_activity2_payload,
     read_activity3_payload,
     read_nhanse_payload,
+    read_temperature_payload,
 )
 from pygt3x.components import Header, Info, RawEvent
 
@@ -29,6 +30,8 @@ class FileReader:
     def __init__(self, file_name: str):
         """Initialise."""
         self.file_name = file_name
+        self.acceleration = np.empty((0, 4))
+        self.temperature = np.empty((0, 3))
 
     def __enter__(self):
         """Open zipped file and ret up readers."""
@@ -42,7 +45,8 @@ class FileReader:
             self.logfile = self.zipfile.open("log.txt", "r")
             self.activity_file = self.zipfile.open("activity.bin", "r")
         self.info = Info(self.zipfile)
-        self.calibration = self.read_calibration()
+        self.calibration = self.read_json("calibration.json")
+        self.temperature_calibration = self.read_json("temperature_calibration.json")
 
         return self
 
@@ -51,11 +55,11 @@ class FileReader:
         self.logfile.__exit__(typ, value, traceback)
         self.zipfile.__exit__(typ, value, traceback)
 
-    def read_calibration(self):
+    def read_json(self, file_name):
         """Read calibration info from file."""
-        if "calibration.json" not in self.zipfile.namelist():
+        if file_name not in self.zipfile.namelist():
             return None
-        with self.zipfile.open("calibration.json") as f:
+        with self.zipfile.open(file_name) as f:
             calibration = json.load(f)
             return calibration
 
@@ -88,7 +92,7 @@ class FileReader:
                 raw_event = self.logreader.read_event()
                 yield raw_event
 
-    def get_acceleration(self, num_rows=None):
+    def get_data(self, num_rows=None):
         """Yield acceleration data.
 
         Parameters:
@@ -96,6 +100,8 @@ class FileReader:
         num_rows
             Number of events to read.
         """
+        acceleration = []
+        temperature = []
         if self.logreader:
             idle_sleep_mode_started = None
             # This is used for filling in gaps created by idle sleep mode
@@ -121,7 +127,7 @@ class FileReader:
                         idle_sleep_mode_started, evt.header.timestamp, last_values
                     )
                     idle_sleep_mode_started = None
-                    yield payload
+                    acceleration.append(payload)
 
                 # An 'Activity' (id: 0x00) log record type with a 1-byte payload is
                 # captured on a USB connection event (and does not represent a reading
@@ -129,8 +135,9 @@ class FileReader:
                 # upon docking the activity monitor (via USB) to a PC or CentrePoint
                 # Data Hub (CDH) device. Therefore, such records cannot be parsed as the
                 # traditional activity log records and can be ignored.
-                if type == Types.Activity and evt.header.payload_size == 1:
-                    continue
+                if type in [Types.Activity, Types.Activity3]:
+                    if evt.header.payload_size == 1:
+                        continue
 
                 if type == Types.Activity3:
                     payload = read_activity3_payload(evt.payload, evt.header.timestamp)
@@ -138,11 +145,16 @@ class FileReader:
                     payload = read_activity2_payload(evt.payload, evt.header.timestamp)
                 elif type == Types.Activity:
                     payload = read_activity1_payload(evt.payload, evt.header.timestamp)
+                elif type == Types.TemperatureRecord:
+                    temperature.append(
+                        read_temperature_payload(evt.payload, evt.header.timestamp)
+                    )
+                    continue
                 else:
                     continue
                 if payload.shape[0] > 0:
                     last_values = payload[-1, 1:]
-                yield payload
+                acceleration.append(payload)
 
             if idle_sleep_mode_started is not None:
                 # Idle sleep mode was started but not finished before the recording
@@ -152,7 +164,7 @@ class FileReader:
                 payload = self._fill_ism(
                     idle_sleep_mode_started, idle_sleep_mode_ended, last_values
                 )
-                yield payload
+                acceleration.append(payload)
 
         else:
             payload = read_nhanse_payload(
@@ -160,13 +172,29 @@ class FileReader:
                 self.info.start_date,
                 self.info.sample_rate,
             )
-            yield payload
+            acceleration.append(payload)
+
+        if len(acceleration) > 0:
+            self.acceleration = np.concatenate(acceleration)
+        if len(temperature) > 0:
+            self.temperature = np.concatenate(temperature)
 
     def to_pandas(self):
         """Return acceleration data as pandas data frame."""
         col_names = ["Timestamp", "X", "Y", "Z"]
-        data = np.concatenate(list(self.get_acceleration()))
-        df = pd.DataFrame(data, columns=col_names)
+        if len(self.acceleration) == 0:
+            self.get_data()
+        df = pd.DataFrame(self.acceleration, columns=col_names)
+        df.set_index("Timestamp", drop=True, inplace=True)
+        return df
+
+    def temperature_to_pandas(self):
+        """Return acceleration data as pandas data frame."""
+        col_names = ["Timestamp", "TemperatureMCU", "TemperatureADXL"]
+        if len(self.temperature) == 0:
+            assert len(self.acceleration) == 0
+            self.get_data()
+        df = pd.DataFrame(self.temperature, columns=col_names)
         df.set_index("Timestamp", drop=True, inplace=True)
         return df
 

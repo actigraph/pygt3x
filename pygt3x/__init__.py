@@ -36,3 +36,4 @@ class Types(Enum):
     Activity3 = 27
     LongPress = 28
     ButtonEvent = 29
+    TemperatureRecord = 30
