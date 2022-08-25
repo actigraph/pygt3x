@@ -189,7 +189,7 @@ class FileReader:
         return df
 
     def temperature_to_pandas(self):
-        """Return acceleration data as pandas data frame."""
+        """Return temperature data as pandas data frame."""
         col_names = ["Timestamp", "TemperatureMCU", "TemperatureADXL"]
         if len(self.temperature) == 0:
             assert len(self.acceleration) == 0

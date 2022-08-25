@@ -174,7 +174,7 @@ class CalibratedReader:
         return df
 
     def temperature_to_pandas(self):
-        """Return acceleration data as pandas data frame."""
+        """Return temperature data as pandas data frame."""
         col_names = ["Timestamp", "TemperatureMCU", "TemperatureADXL"]
         data = self.calibrate_temperature()
         df = pd.DataFrame(data, columns=col_names)
