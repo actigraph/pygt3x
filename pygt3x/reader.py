@@ -127,6 +127,7 @@ class FileReader:
                         idle_sleep_mode_started = None
                         acceleration.append(payload)
                     else:
+                        idle_sleep_mode_started = None
                         continue
 
                 # An 'Activity' (id: 0x00) log record type with a 1-byte payload is
