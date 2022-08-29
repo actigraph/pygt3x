@@ -120,14 +120,14 @@ class FileReader:
                     idle_sleep_mode_started = evt.header.timestamp
                     continue
                 if type == Types.Event and evt.payload == b"\x09":
-                    assert idle_sleep_mode_started is not None
-                    assert last_values is not None
-
-                    payload = self._fill_ism(
-                        idle_sleep_mode_started, evt.header.timestamp, last_values
-                    )
-                    idle_sleep_mode_started = None
-                    acceleration.append(payload)
+                    if idle_sleep_mode_started is not None and last_values is not None:
+                        payload = self._fill_ism(
+                            idle_sleep_mode_started, evt.header.timestamp, last_values
+                        )
+                        idle_sleep_mode_started = None
+                        acceleration.append(payload)
+                    else:
+                        continue
 
                 # An 'Activity' (id: 0x00) log record type with a 1-byte payload is
                 # captured on a USB connection event (and does not represent a reading
