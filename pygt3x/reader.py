@@ -116,7 +116,10 @@ class FileReader:
                 # Idle sleep mode is encoded as an event with payload 8 when entering
                 # and 09 when leaving.
                 if type == Types.Event and evt.payload == b"\x08":
-                    assert idle_sleep_mode_started is None
+                    if idle_sleep_mode_started is not None:
+                        logging.warning(
+                            f"Idle sleep mode was already active at {idle_sleep_mode_started}"
+                        )
                     idle_sleep_mode_started = evt.header.timestamp
                     continue
                 if type == Types.Event and evt.payload == b"\x09":
@@ -126,8 +129,11 @@ class FileReader:
                         )
                         idle_sleep_mode_started = None
                         acceleration.append(payload)
+                        continue
                     else:
-                        idle_sleep_mode_started = None
+                        logging.warning(
+                            f"Idle sleep mode was not active at {evt.header.timestamp}"
+                        )
                         continue
 
                 # An 'Activity' (id: 0x00) log record type with a 1-byte payload is
