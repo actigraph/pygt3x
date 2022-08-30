@@ -161,12 +161,15 @@ class FileReader:
                     continue
                 if payload.shape[0] > 0:
                     last_values = payload[-1, 1:]
+                    # Without the next line, if we miss an ISM stop event, we would
+                    # think we are in ISM even when receiving accelerometer data.
+                    idle_sleep_mode_started = None
                 acceleration.append(payload)
 
             if idle_sleep_mode_started is not None:
                 # Idle sleep mode was started but not finished before the recording
-                # ended. This means that we are missing some records at the end of the
-                # file.
+                # ended. This means that we might be missing some records at the end of
+                # the file.
                 idle_sleep_mode_ended = evt.header.timestamp
                 payload = self._fill_ism(
                     idle_sleep_mode_started, idle_sleep_mode_ended, last_values
