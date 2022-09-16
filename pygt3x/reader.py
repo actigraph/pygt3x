@@ -116,18 +116,26 @@ class FileReader:
                 # Idle sleep mode is encoded as an event with payload 8 when entering
                 # and 09 when leaving.
                 if type == Types.Event and evt.payload == b"\x08":
-                    assert idle_sleep_mode_started is None
+                    if idle_sleep_mode_started is not None:
+                        logging.warning(
+                            f"Idle sleep mode was already active at"
+                            f" {idle_sleep_mode_started}"
+                        )
                     idle_sleep_mode_started = evt.header.timestamp
                     continue
                 if type == Types.Event and evt.payload == b"\x09":
-                    assert idle_sleep_mode_started is not None
-                    assert last_values is not None
-
-                    payload = self._fill_ism(
-                        idle_sleep_mode_started, evt.header.timestamp, last_values
-                    )
-                    idle_sleep_mode_started = None
-                    acceleration.append(payload)
+                    if idle_sleep_mode_started is not None and last_values is not None:
+                        payload = self._fill_ism(
+                            idle_sleep_mode_started, evt.header.timestamp, last_values
+                        )
+                        idle_sleep_mode_started = None
+                        acceleration.append(payload)
+                        continue
+                    else:
+                        logging.warning(
+                            f"Idle sleep mode was not active at {evt.header.timestamp}"
+                        )
+                        continue
 
                 # An 'Activity' (id: 0x00) log record type with a 1-byte payload is
                 # captured on a USB connection event (and does not represent a reading
@@ -154,12 +162,15 @@ class FileReader:
                     continue
                 if payload.shape[0] > 0:
                     last_values = payload[-1, 1:]
+                    # Without the next line, if we miss an ISM stop event, we would
+                    # think we are in ISM even when receiving accelerometer data.
+                    idle_sleep_mode_started = None
                 acceleration.append(payload)
 
             if idle_sleep_mode_started is not None:
                 # Idle sleep mode was started but not finished before the recording
-                # ended. This means that we are missing some records at the end of the
-                # file.
+                # ended. This means that we might be missing some records at the end of
+                # the file.
                 idle_sleep_mode_ended = evt.header.timestamp
                 payload = self._fill_ism(
                     idle_sleep_mode_started, idle_sleep_mode_ended, last_values
