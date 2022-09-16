@@ -118,7 +118,8 @@ class FileReader:
                 if type == Types.Event and evt.payload == b"\x08":
                     if idle_sleep_mode_started is not None:
                         logging.warning(
-                            f"Idle sleep mode was already active at {idle_sleep_mode_started}"
+                            f"Idle sleep mode was already active at"
+                            f" {idle_sleep_mode_started}"
                         )
                     idle_sleep_mode_started = evt.header.timestamp
                     continue
