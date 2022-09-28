@@ -107,7 +107,11 @@ class CalibratedReader:
         info = self.source.info
         acceleration = self.source.acceleration
 
-        if calibration is None or calibration["isCalibrated"]:
+        if (
+            calibration is None
+            or ("isCalibrated" not in calibration)
+            or calibration["isCalibrated"]
+        ):
             # Data is already calibrated, so just return unscaled values
             accel_scale = info.acceleration_scale
             calibrated_acceleration = np.concatenate(
