@@ -122,19 +122,21 @@ class Info:
         self.acceleration_max = float(output.get("Acceleration Max", 0))
         self.acceleration_min = float(output.get("Acceleration Min", 0))
         self.acceleration_scale = float(output.get("Acceleration Scale", 0))
-        self.age = float(output.get("Age", None))
+        self.age = float(output["Age"]) if "Age" in output else None
         self.battery_voltage = float(
             output.get("Battery Voltage", "0").replace(",", ".")
         )
         self.board_revision = output.get("Board Revision", None)
         self.device_type = output.get("Device Type", None)
-        self.dominance = output.get("Device Type", None)
-        self.download_date = int(output.get("Dominance", None))
+        self.dominance = output.get("Dominance", None)
+        self.download_date = (
+            int(output["Download Date"]) if "Download Date" in output else None
+        )
         self.firmware = output.get("Firmware", None)
-        self.height = float(output.get("Height", None))
+        self.height = float(output["Height"]) if "Height" in output else None
         self.last_sample_time = int(output.get("Last Sample Time", 0))
         self.limb = output.get("Limb", None)
-        self.mass = float(output.get("Mass", None))
+        self.mass = float(output["Mass"]) if "Mass" in output else None
         self.race = output.get("Race", None)
         self.sample_rate = int(output.get("Sample Rate", 0))
         self.serial_numer = output.get("Serial Number", None)
