@@ -86,15 +86,21 @@ class Info:
     acceleration_max: float
     acceleration_min: float
     acceleration_scale: float
+    age: float
     battery_voltage: float
     board_revision: str
     device_type: str
+    dominance: str
     download_date: int
     firmware: str
+    height: float
     last_sample_time: int
     limb: str
+    mass: float
+    race: str
     sample_rate: int
     serial_numer: str
+    sex: str
     side: str
     start_date: int
     stop_date: int
@@ -116,17 +122,23 @@ class Info:
         self.acceleration_max = float(output.get("Acceleration Max", 0))
         self.acceleration_min = float(output.get("Acceleration Min", 0))
         self.acceleration_scale = float(output.get("Acceleration Scale", 0))
+        self.age = float(output.get("Age", None))
         self.battery_voltage = float(
             output.get("Battery Voltage", "0").replace(",", ".")
         )
         self.board_revision = output.get("Board Revision", None)
         self.device_type = output.get("Device Type", None)
-        self.download_date = int(output.get("Download Date", 0))
+        self.dominance = output.get("Device Type", None)
+        self.download_date = int(output.get("Dominance", None))
         self.firmware = output.get("Firmware", None)
+        self.height = float(output.get("Height", None))
         self.last_sample_time = int(output.get("Last Sample Time", 0))
         self.limb = output.get("Limb", None)
+        self.mass = float(output.get("Mass", None))
+        self.race = output.get("Race", None)
         self.sample_rate = int(output.get("Sample Rate", 0))
         self.serial_numer = output.get("Serial Number", None)
+        self.sex = output.get("Sex", None)
         self.side = output.get("Side", None)
         self.start_date = int(output.get("Start Date", 0))
         self.stop_date = int(output.get("Stop Date", 0))
