@@ -5,6 +5,7 @@ import struct
 from dataclasses import InitVar, dataclass
 
 import numpy as np
+from typing import Optional, Union
 
 
 @dataclass
@@ -86,27 +87,27 @@ class Info:
     acceleration_max: float
     acceleration_min: float
     acceleration_scale: float
-    age: float
+    age: Optional[float]
     battery_voltage: float
-    board_revision: str
-    device_type: str
-    dominance: str
-    download_date: int
-    firmware: str
-    height: float
+    board_revision: Optional[str]
+    device_type: Optional[str]
+    dominance: Optional[str]
+    download_date: Optional[int]
+    firmware: Optional[str]
+    height: Optional[float]
     last_sample_time: int
-    limb: str
-    mass: float
-    race: str
+    limb: Optional[str]
+    mass: Optional[float]
+    race: Optional[str]
     sample_rate: int
-    serial_numer: str
-    sex: str
-    side: str
+    serial_numer: Optional[str]
+    sex: Optional[str]
+    side: Optional[str]
     start_date: int
     stop_date: int
-    subject_name: str
-    timezone: str
-    unexpected_resets: int
+    subject_name: Optional[str]
+    timezone: Optional[str]
+    unexpected_resets: Union[str, int]
 
 
 def get_info(zip_file) -> Info:
