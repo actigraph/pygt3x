@@ -15,7 +15,7 @@ from pygt3x.activity_payload import (
     read_nhanse_payload,
     read_temperature_payload,
 )
-from pygt3x.components import Header, Info, RawEvent
+from pygt3x.components import Header, get_info, RawEvent
 
 
 class FileReader:
@@ -44,7 +44,7 @@ class FileReader:
             self.logreader = None
             self.logfile = self.zipfile.open("log.txt", "r")
             self.activity_file = self.zipfile.open("activity.bin", "r")
-        self.info = Info(self.zipfile)
+        self.info = get_info(self.zipfile)
         self.calibration = self.read_json("calibration.json")
         self.temperature_calibration = self.read_json("temperature_calibration.json")
 
