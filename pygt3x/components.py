@@ -109,41 +109,43 @@ class Info:
     timezone: Optional[str]
     unexpected_resets: Union[str, int]
 
-
-def get_info(zip_file) -> Info:
-    """Parse info.txt and returns an Info object."""
-    output = dict()
-    with io.TextIOWrapper(zip_file.open("info.txt", "r"), encoding="utf-8-sig") as f:
-        for line in f.readlines():
-            values = line.split(":")
-            # The format of TimeZone is this: "TimeZone: -04:00:00"
-            if len(values) == 2 or values[0] == "TimeZone":
-                output[values[0].strip()] = ":".join(values[1:]).strip()
-    return Info(
-        acceleration_max=float(output.get("Acceleration Max", 0)),
-        acceleration_min=float(output.get("Acceleration Min", 0)),
-        acceleration_scale=float(output.get("Acceleration Scale", 0)),
-        age=float(output["Age"]) if "Age" in output else None,
-        battery_voltage=float(output.get("Battery Voltage", "0").replace(",", ".")),
-        board_revision=output.get("Board Revision", None),
-        device_type=output.get("Device Type", None),
-        dominance=output.get("Dominance", None),
-        download_date=(
-            int(output["Download Date"]) if "Download Date" in output else None
-        ),
-        firmware=output.get("Firmware", None),
-        height=float(output["Height"]) if "Height" in output else None,
-        last_sample_time=int(output.get("Last Sample Time", 0)),
-        limb=output.get("Limb", None),
-        mass=float(output["Mass"]) if "Mass" in output else None,
-        race=output.get("Race", None),
-        sample_rate=int(output.get("Sample Rate", 0)),
-        serial_numer=output.get("Serial Number", None),
-        sex=output.get("Sex", None),
-        side=output.get("Side", None),
-        start_date=int(output.get("Start Date", 0)),
-        stop_date=int(output.get("Stop Date", 0)),
-        subject_name=output.get("Subject Name", None),
-        timezone=output.get("TimeZone", None),
-        unexpected_resets=output.get("Unexpected Resets", 0),
-    )
+    @staticmethod
+    def get_info(zip_file):
+        """Parse info.txt and returns an Info object."""
+        output = dict()
+        with io.TextIOWrapper(
+            zip_file.open("info.txt", "r"), encoding="utf-8-sig"
+        ) as f:
+            for line in f.readlines():
+                values = line.split(":")
+                # The format of TimeZone is this: "TimeZone: -04:00:00"
+                if len(values) == 2 or values[0] == "TimeZone":
+                    output[values[0].strip()] = ":".join(values[1:]).strip()
+        return Info(
+            acceleration_max=float(output.get("Acceleration Max", 0)),
+            acceleration_min=float(output.get("Acceleration Min", 0)),
+            acceleration_scale=float(output.get("Acceleration Scale", 0)),
+            age=float(output["Age"]) if "Age" in output else None,
+            battery_voltage=float(output.get("Battery Voltage", "0").replace(",", ".")),
+            board_revision=output.get("Board Revision", None),
+            device_type=output.get("Device Type", None),
+            dominance=output.get("Dominance", None),
+            download_date=(
+                int(output["Download Date"]) if "Download Date" in output else None
+            ),
+            firmware=output.get("Firmware", None),
+            height=float(output["Height"]) if "Height" in output else None,
+            last_sample_time=int(output.get("Last Sample Time", 0)),
+            limb=output.get("Limb", None),
+            mass=float(output["Mass"]) if "Mass" in output else None,
+            race=output.get("Race", None),
+            sample_rate=int(output.get("Sample Rate", 0)),
+            serial_numer=output.get("Serial Number", None),
+            sex=output.get("Sex", None),
+            side=output.get("Side", None),
+            start_date=int(output.get("Start Date", 0)),
+            stop_date=int(output.get("Stop Date", 0)),
+            subject_name=output.get("Subject Name", None),
+            timezone=output.get("TimeZone", None),
+            unexpected_resets=output.get("Unexpected Resets", 0),
+        )
