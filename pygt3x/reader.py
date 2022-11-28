@@ -44,7 +44,7 @@ class FileReader:
             self.logreader = None
             self.logfile = self.zipfile.open("log.txt", "r")
             self.activity_file = self.zipfile.open("activity.bin", "r")
-        self.info = Info.get_info(self.zipfile)
+        self.info = Info.read_zip(self.zipfile)
         self.calibration = self.read_json("calibration.json")
         self.temperature_calibration = self.read_json("temperature_calibration.json")
 

@@ -110,7 +110,7 @@ class Info:
     unexpected_resets: Union[str, int]
 
     @staticmethod
-    def get_info(zip_file):
+    def read_zip(zip_file):
         """Parse info.txt and returns an Info object."""
         output = dict()
         with io.TextIOWrapper(
