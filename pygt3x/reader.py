@@ -72,7 +72,8 @@ class FileReader:
         )
         values = last_values.reshape((1, 3)).repeat(timestamps.shape[0], axis=0)
 
-        return np.concatenate((timestamps, values), axis=1)
+        result = np.concatenate((timestamps, values), axis=1).reshape((-1, 30, 4))
+        return result
 
     def read_events(self, num_rows=None):
         """Read events from file.
@@ -106,6 +107,7 @@ class FileReader:
             idle_sleep_mode_started = None
             # This is used for filling in gaps created by idle sleep mode
             last_values = None
+            dt = 0
             for evt in self.read_events(num_rows):
                 try:
                     type = Types(evt.header.event_type)
@@ -116,6 +118,16 @@ class FileReader:
                 # Idle sleep mode is encoded as an event with payload 8 when entering
                 # and 09 when leaving.
                 if type == Types.Event and evt.payload == b"\x08":
+                    try:
+                        last_second = acceleration[-1][0, 0]
+                    except IndexError:
+                        pass
+                    else:
+                        dt = evt.header.timestamp - last_second
+                        if dt >= 2:
+                            ts = pd.to_datetime(evt.header.timestamp, unit="s")
+                            logging.debug(f"Missed {dt}s before {ts}")
+
                     if idle_sleep_mode_started is not None:
                         logging.warning(
                             f"Idle sleep mode was already active at"
@@ -125,11 +137,14 @@ class FileReader:
                     continue
                 if type == Types.Event and evt.payload == b"\x09":
                     if idle_sleep_mode_started is not None and last_values is not None:
+                        # Fill in missing data for dt past payloads
+                        fill_start = idle_sleep_mode_started - (dt - 1)
+
                         payload = self._fill_ism(
-                            idle_sleep_mode_started, evt.header.timestamp, last_values
+                            fill_start, evt.header.timestamp, last_values
                         )
                         idle_sleep_mode_started = None
-                        acceleration.append(payload)
+                        acceleration.extend(payload)
                         continue
                     else:
                         logging.warning(
@@ -165,7 +180,8 @@ class FileReader:
                     # Without the next line, if we miss an ISM stop event, we would
                     # think we are in ISM even when receiving accelerometer data.
                     idle_sleep_mode_started = None
-                acceleration.append(payload)
+                if payload.shape[0] != 0:
+                    acceleration.append(payload)
 
             if idle_sleep_mode_started is not None:
                 # Idle sleep mode was started but not finished before the recording
@@ -175,7 +191,7 @@ class FileReader:
                 payload = self._fill_ism(
                     idle_sleep_mode_started, idle_sleep_mode_ended, last_values
                 )
-                acceleration.append(payload)
+                acceleration.extend(payload)
 
         else:
             payload = read_nhanse_payload(
