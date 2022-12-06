@@ -189,7 +189,9 @@ class FileReader:
                 # the file.
                 idle_sleep_mode_ended = evt.header.timestamp
                 payload = self._fill_ism(
-                    idle_sleep_mode_started, idle_sleep_mode_ended, last_values
+                    idle_sleep_mode_started - (dt - 1),
+                    idle_sleep_mode_ended,
+                    last_values,
                 )
                 acceleration.extend(payload)
 
