@@ -93,7 +93,16 @@ class FileReader:
                 raw_event = self.logreader.read_event()
                 yield raw_event
 
-    def get_data(self, num_rows=None):
+    def _get_data_nhanse(self):
+        """Yield NHANSE acceleration data."""
+        payload = read_nhanse_payload(
+            self.activity_file,
+            self.info.start_date,
+            self.info.sample_rate,
+        )
+        return [payload], []
+
+    def _get_data_default(self, num_rows=None):
         """Yield acceleration data.
 
         Parameters:
@@ -103,105 +112,111 @@ class FileReader:
         """
         acceleration = []
         temperature = []
-        if self.logreader:
-            idle_sleep_mode_started = None
-            # This is used for filling in gaps created by idle sleep mode
-            last_values = None
-            dt = 0
-            for evt in self.read_events(num_rows):
+        idle_sleep_mode_started = None
+        # This is used for filling in gaps created by idle sleep mode
+        last_values = None
+        dt = 0
+        for evt in self.read_events(num_rows):
+            try:
+                type = Types(evt.header.event_type)
+            except ValueError:
+                logging.warning(f"Unsupported event type {evt.header.event_type}")
+                continue
+
+            # Idle sleep mode is encoded as an event with payload 8 when entering
+            # and 09 when leaving.
+            if type == Types.Event and evt.payload == b"\x08":
                 try:
-                    type = Types(evt.header.event_type)
-                except ValueError:
-                    logging.warning(f"Unsupported event type {evt.header.event_type}")
-                    continue
+                    last_second = acceleration[-1][0, 0]
+                except IndexError:
+                    pass
+                else:
+                    dt = evt.header.timestamp - last_second
+                    if dt >= 2:
+                        ts = pd.to_datetime(evt.header.timestamp, unit="s")
+                        logging.debug(f"Missed {dt}s before {ts}")
 
-                # Idle sleep mode is encoded as an event with payload 8 when entering
-                # and 09 when leaving.
-                if type == Types.Event and evt.payload == b"\x08":
-                    try:
-                        last_second = acceleration[-1][0, 0]
-                    except IndexError:
-                        pass
-                    else:
-                        dt = evt.header.timestamp - last_second
-                        if dt >= 2:
-                            ts = pd.to_datetime(evt.header.timestamp, unit="s")
-                            logging.debug(f"Missed {dt}s before {ts}")
-
-                    if idle_sleep_mode_started is not None:
-                        logging.warning(
-                            f"Idle sleep mode was already active at"
-                            f" {idle_sleep_mode_started}"
-                        )
-                    idle_sleep_mode_started = evt.header.timestamp
-                    continue
-                if type == Types.Event and evt.payload == b"\x09":
-                    if idle_sleep_mode_started is not None and last_values is not None:
-                        # Fill in missing data for dt past payloads
-                        fill_start = idle_sleep_mode_started - (dt - 1)
-
-                        payload = self._fill_ism(
-                            fill_start, evt.header.timestamp, last_values
-                        )
-                        idle_sleep_mode_started = None
-                        acceleration.extend(payload)
-                        continue
-                    else:
-                        logging.warning(
-                            f"Idle sleep mode was not active at {evt.header.timestamp}"
-                        )
-                        continue
-
-                # An 'Activity' (id: 0x00) log record type with a 1-byte payload is
-                # captured on a USB connection event (and does not represent a reading
-                # from the activity monitor's accelerometer). This event is captured
-                # upon docking the activity monitor (via USB) to a PC or CentrePoint
-                # Data Hub (CDH) device. Therefore, such records cannot be parsed as the
-                # traditional activity log records and can be ignored.
-                if type in [Types.Activity, Types.Activity3]:
-                    if evt.header.payload_size == 1:
-                        continue
-
-                if type == Types.Activity3:
-                    payload = read_activity3_payload(evt.payload, evt.header.timestamp)
-                elif type == Types.Activity2:
-                    payload = read_activity2_payload(evt.payload, evt.header.timestamp)
-                elif type == Types.Activity:
-                    payload = read_activity1_payload(evt.payload, evt.header.timestamp)
-                elif type == Types.TemperatureRecord:
-                    temperature.append(
-                        read_temperature_payload(evt.payload, evt.header.timestamp)
+                if idle_sleep_mode_started is not None:
+                    logging.warning(
+                        f"Idle sleep mode was already active at"
+                        f" {idle_sleep_mode_started}"
                     )
+                idle_sleep_mode_started = evt.header.timestamp
+                continue
+            if type == Types.Event and evt.payload == b"\x09":
+                if idle_sleep_mode_started is not None and last_values is not None:
+                    # Fill in missing data for dt past payloads
+                    fill_start = idle_sleep_mode_started - (dt - 1)
+
+                    payload = self._fill_ism(
+                        fill_start, evt.header.timestamp, last_values
+                    )
+                    idle_sleep_mode_started = None
+                    acceleration.extend(payload)
                     continue
                 else:
+                    logging.warning(
+                        f"Idle sleep mode was not active at {evt.header.timestamp}"
+                    )
                     continue
-                if payload.shape[0] > 0:
-                    last_values = payload[-1, 1:]
-                    # Without the next line, if we miss an ISM stop event, we would
-                    # think we are in ISM even when receiving accelerometer data.
-                    idle_sleep_mode_started = None
-                if payload.shape[0] != 0:
-                    acceleration.append(payload)
 
-            if idle_sleep_mode_started is not None:
-                # Idle sleep mode was started but not finished before the recording
-                # ended. This means that we might be missing some records at the end of
-                # the file.
-                idle_sleep_mode_ended = evt.header.timestamp
-                payload = self._fill_ism(
-                    idle_sleep_mode_started - (dt - 1),
-                    idle_sleep_mode_ended,
-                    last_values,
+            # An 'Activity' (id: 0x00) log record type with a 1-byte payload is
+            # captured on a USB connection event (and does not represent a reading
+            # from the activity monitor's accelerometer). This event is captured
+            # upon docking the activity monitor (via USB) to a PC or CentrePoint
+            # Data Hub (CDH) device. Therefore, such records cannot be parsed as the
+            # traditional activity log records and can be ignored.
+            if type in [Types.Activity, Types.Activity3]:
+                if evt.header.payload_size == 1:
+                    continue
+
+            if type == Types.Activity3:
+                payload = read_activity3_payload(evt.payload, evt.header.timestamp)
+            elif type == Types.Activity2:
+                payload = read_activity2_payload(evt.payload, evt.header.timestamp)
+            elif type == Types.Activity:
+                payload = read_activity1_payload(evt.payload, evt.header.timestamp)
+            elif type == Types.TemperatureRecord:
+                temperature.append(
+                    read_temperature_payload(evt.payload, evt.header.timestamp)
                 )
-                acceleration.extend(payload)
+                continue
+            else:
+                continue
+            if payload.shape[0] > 0:
+                last_values = payload[-1, 1:]
+                # Without the next line, if we miss an ISM stop event, we would
+                # think we are in ISM even when receiving accelerometer data.
+                idle_sleep_mode_started = None
+            if payload.shape[0] != 0:
+                acceleration.append(payload)
 
-        else:
-            payload = read_nhanse_payload(
-                self.activity_file,
-                self.info.start_date,
-                self.info.sample_rate,
+        if idle_sleep_mode_started is not None:
+            # Idle sleep mode was started but not finished before the recording
+            # ended. This means that we might be missing some records at the end of
+            # the file.
+            idle_sleep_mode_ended = evt.header.timestamp
+            payload = self._fill_ism(
+                idle_sleep_mode_started - (dt - 1),
+                idle_sleep_mode_ended,
+                last_values,
             )
-            acceleration.append(payload)
+            acceleration.extend(payload)
+
+        return acceleration, temperature
+
+    def get_data(self, num_rows=None):
+        """Yield acceleration data.
+
+        Parameters:
+        -----------
+        num_rows
+            Number of events to read.
+        """
+        if not self.logreader:
+            acceleration, temperature = self._get_data_nhanse()
+        else:
+            acceleration, temperature = self._get_data_default(num_rows=num_rows)
 
         if len(acceleration) > 0:
             self.acceleration = np.concatenate(acceleration)
