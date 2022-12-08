@@ -4,6 +4,8 @@ import json
 import logging
 from zipfile import ZipFile
 
+from collections import Counter
+
 import numpy as np
 import pandas as pd
 
@@ -75,6 +77,13 @@ class FileReader:
         result = np.concatenate((timestamps, values), axis=1).reshape((-1, 30, 4))
         return result
 
+    def _validate_payload(self, payload):
+        shape = payload.shape
+        expected_shape = (self.info.sample_rate, 4)
+        if shape[1:] != expected_shape and shape != expected_shape:
+            raise ValueError(f"Unexpected payload shape {shape}")
+        return payload
+
     def read_events(self, num_rows=None):
         """Read events from file.
 
@@ -115,7 +124,7 @@ class FileReader:
         idle_sleep_mode_started = None
         # This is used for filling in gaps created by idle sleep mode
         last_values = None
-        dt = 0
+        last_idsm_ts = 0
         for evt in self.read_events(num_rows):
             try:
                 type = Types(evt.header.event_type)
@@ -123,18 +132,31 @@ class FileReader:
                 logging.warning(f"Unsupported event type {evt.header.event_type}")
                 continue
 
+            # dt is time delta w.r.t. last valid acceleration datapoint
+            try:
+                last_second = acceleration[-1][0, 0]
+            except IndexError:
+                dt = 0
+            else:
+                dt = evt.header.timestamp - last_second
+
+            # Time travel dt is relative to last event,
+            # no matter whether it had valid data
+            # or was e.g. ISM start/end
+            time_travel_dt = last_idsm_ts - evt.header.timestamp
+            if time_travel_dt > 0:
+                logging.debug(
+                    f"{evt.header.timestamp} --> {dt} (TIME TRAVEL) by {time_travel_dt} sec"
+                )
+
             # Idle sleep mode is encoded as an event with payload 8 when entering
             # and 09 when leaving.
             if type == Types.Event and evt.payload == b"\x08":
-                try:
-                    last_second = acceleration[-1][0, 0]
-                except IndexError:
-                    pass
-                else:
-                    dt = evt.header.timestamp - last_second
-                    if dt >= 2:
-                        ts = pd.to_datetime(evt.header.timestamp, unit="s")
-                        logging.debug(f"Missed {dt}s before {ts}")
+                last_idsm_ts = evt.header.timestamp
+                dt_idm = dt
+                if dt >= 2:
+                    ts = pd.to_datetime(evt.header.timestamp, unit="s")
+                    logging.debug(f"Missed {dt}s before {ts}")
 
                 if idle_sleep_mode_started is not None:
                     logging.warning(
@@ -145,11 +167,12 @@ class FileReader:
                 continue
             if type == Types.Event and evt.payload == b"\x09":
                 if idle_sleep_mode_started is not None and last_values is not None:
+                    last_idsm_ts = evt.header.timestamp
                     # Fill in missing data for dt past payloads
-                    fill_start = idle_sleep_mode_started - (dt - 1)
+                    fill_start = idle_sleep_mode_started - (dt_idm - 1)
 
-                    payload = self._fill_ism(
-                        fill_start, evt.header.timestamp, last_values
+                    payload = self._validate_payload(
+                        self._fill_ism(fill_start, evt.header.timestamp, last_values)
                     )
                     idle_sleep_mode_started = None
                     acceleration.extend(payload)
@@ -189,20 +212,30 @@ class FileReader:
                 # think we are in ISM even when receiving accelerometer data.
                 idle_sleep_mode_started = None
             if payload.shape[0] != 0:
-                acceleration.append(payload)
+                if time_travel_dt > 0:
+                    logging.debug(
+                        f"{evt.header.timestamp} --> {dt} (TIME TRAVEL) by {time_travel_dt} sec"
+                    )
+                    logging.debug(f"Last valid second: {acceleration[-1][0, 0]}")
+                    assert dt == 0, f"Expected dt=0 for time travelling, but dt={dt}"
+                    acceleration[-1 - dt] = self._validate_payload(payload)
+                else:
+                    acceleration.append(self._validate_payload(payload))
 
         if idle_sleep_mode_started is not None:
             # Idle sleep mode was started but not finished before the recording
             # ended. This means that we might be missing some records at the end of
             # the file.
             idle_sleep_mode_ended = evt.header.timestamp
-            payload = self._fill_ism(
-                idle_sleep_mode_started - (dt - 1),
-                idle_sleep_mode_ended,
-                last_values,
+            payload = self._validate_payload(
+                self._fill_ism(
+                    idle_sleep_mode_started - (dt_idm - 1),
+                    idle_sleep_mode_ended,
+                    last_values,
+                )
             )
             acceleration.extend(payload)
-
+        logging.debug(f"last ts {evt.header.timestamp}")
         return acceleration, temperature
 
     def get_data(self, num_rows=None):
@@ -222,6 +255,12 @@ class FileReader:
             self.acceleration = np.concatenate(acceleration)
         if len(temperature) > 0:
             self.temperature = np.concatenate(temperature)
+
+        # ok = sum(a.shape[0] == self.info.sample_rate for a in acceleration) == len(acceleration)
+        # assert ok, print("")
+        counter = Counter(self.acceleration[:, 0])
+        wrong_freq_cases = [c for c in counter.values() if c != self.info.sample_rate]
+        assert not wrong_freq_cases, f"Wrong freq cases: {wrong_freq_cases}"
 
     def to_pandas(self):
         """Return acceleration data as pandas data frame."""
