@@ -256,8 +256,7 @@ class FileReader:
         if len(temperature) > 0:
             self.temperature = np.concatenate(temperature)
 
-        # ok = sum(a.shape[0] == self.info.sample_rate for a in acceleration) == len(acceleration)
-        # assert ok, print("")
+        # Make sure each second appears sample rate times
         counter = Counter(self.acceleration[:, 0])
         wrong_freq_cases = [c for c in counter.values() if c != self.info.sample_rate]
         assert not wrong_freq_cases, f"Wrong freq cases: {wrong_freq_cases}"
