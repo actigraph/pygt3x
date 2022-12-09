@@ -257,7 +257,7 @@ class FileReader:
             self.temperature = np.concatenate(temperature)
 
         # Make sure each second appears sample rate times
-        counter = Counter(self.acceleration[:, 0])
+        counter = Counter(self.acceleration[:, 0].astype(int))
         wrong_freq_cases = [c for c in counter.values() if c != self.info.sample_rate]
         assert not wrong_freq_cases, f"Wrong freq cases: {wrong_freq_cases}"
 
