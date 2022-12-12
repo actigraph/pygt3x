@@ -81,7 +81,7 @@ class FileReader:
         shape = payload.shape
         expected_shape = (self.info.sample_rate, 4)
         if shape[1:] != expected_shape and shape != expected_shape:
-            raise ValueError(f"Unexpected payload shape {shape}")
+            logging.warning(f"Unexpected payload shape {shape}")
         return payload
 
     def read_events(self, num_rows=None):
@@ -146,7 +146,7 @@ class FileReader:
             time_travel_dt = last_idsm_ts - evt.header.timestamp
             if time_travel_dt > 0:
                 logging.debug(
-                    f"{evt.header.timestamp} --> {dt} (TIME TRAVEL) by {time_travel_dt} sec"
+                    f"{evt.header.timestamp} --> {dt} time drift by {time_travel_dt}s"
                 )
 
             # Idle sleep mode is encoded as an event with payload 8 when entering
@@ -214,7 +214,7 @@ class FileReader:
             if payload.shape[0] != 0:
                 if time_travel_dt > 0:
                     logging.debug(
-                        f"{evt.header.timestamp} --> {dt} (TIME TRAVEL) by {time_travel_dt} sec"
+                        f"{evt.header.timestamp}>{dt} time drift by {time_travel_dt}s"
                     )
                     logging.debug(f"Last valid second: {acceleration[-1][0, 0]}")
                     assert dt == 0, f"Expected dt=0 for time travelling, but dt={dt}"
@@ -259,7 +259,8 @@ class FileReader:
         # Make sure each second appears sample rate times
         counter = Counter(self.acceleration[:, 0].astype(int))
         wrong_freq_cases = [c for c in counter.values() if c != self.info.sample_rate]
-        assert not wrong_freq_cases, f"Wrong freq cases: {wrong_freq_cases}"
+        if len(wrong_freq_cases) > 0:
+            logging.warning(f"Wrong freq cases: {wrong_freq_cases}")
 
     def to_pandas(self):
         """Return acceleration data as pandas data frame."""
