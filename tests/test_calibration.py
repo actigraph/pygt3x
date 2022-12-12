@@ -30,12 +30,12 @@ def test_read(gt3x_file):
         uncalibrated_df = reader.to_pandas().mean()
         calibrated = CalibratedReader(reader)
         df = calibrated.to_pandas().mean()
-    assert uncalibrated_df.X == pytest.approx(-76.12080934330498)
-    assert uncalibrated_df.Y == pytest.approx(87.71560086056756)
-    assert uncalibrated_df.Z == pytest.approx(103.86490455212922)
-    assert df.X == pytest.approx(-0.29734698)
-    assert df.Y == pytest.approx(0.3426391)
-    assert df.Z == pytest.approx(0.40572238)
+    assert uncalibrated_df.X == pytest.approx(-76.11525538046477)
+    assert uncalibrated_df.Y == pytest.approx(87.69668894475443)
+    assert uncalibrated_df.Z == pytest.approx(103.93508015342586)
+    assert df.X == pytest.approx(-0.2973251938819885)
+    assert df.Y == pytest.approx(0.3425652086734772)
+    assert df.Z == pytest.approx(0.40599629282951355)
 
 
 def test_calibrate_32hz(calibrated_dataframe, wrist_dataframe):
