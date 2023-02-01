@@ -69,7 +69,8 @@ def agdc_file_temperature_mcu():
 def agdc_file_temperature_adxl_cal():
     file = resource_filename(
         "tests.resources",
-        "temperature/Csv_Calibrated/CPW1C48210013_baseline_temperature_ADXL_calibrated.csv",
+        "temperature/Csv_Calibrated/"
+        "CPW1C48210013_baseline_temperature_ADXL_calibrated.csv",
     )
     return pd.read_csv(file)
 
@@ -78,7 +79,8 @@ def agdc_file_temperature_adxl_cal():
 def agdc_file_temperature_mcu_cal():
     file = resource_filename(
         "tests.resources",
-        "temperature/Csv_Calibrated/CPW1C48210013_baseline_temperature_MCU_calibrated.csv",
+        "temperature/Csv_Calibrated/"
+        "CPW1C48210013_baseline_temperature_MCU_calibrated.csv",
     )
     return pd.read_csv(file)
 
