@@ -1,6 +1,7 @@
 import pandas as pd
 import pytest
 from pkg_resources import resource_filename
+
 from pygt3x.calibration import CalibratedReader
 from pygt3x.reader import FileReader
 
@@ -17,7 +18,9 @@ def agdc_file():
 
 @pytest.fixture(scope="package")
 def agdc_file_with_temperature():
-    return resource_filename("tests.resources",  "temperature/CPW1C48210013_baseline.agdc")
+    return resource_filename(
+        "tests.resources", "temperature/CPW1C48210013_baseline.agdc"
+    )
 
 
 @pytest.fixture(scope="package")
@@ -37,53 +40,57 @@ def agdc_temperature_cal(agdc_file_with_temperature):
 
 @pytest.fixture
 def agdc_file_temperature_acc_cal():
-    file = (
-        resource_filename("tests.resources",
-         "temperature/Csv_Calibrated/CPW1C48210013_baseline_acceleration_calibrated.csv"
-    ))
+    file = resource_filename(
+        "tests.resources",
+        "temperature/Csv_Calibrated/CPW1C48210013_baseline_acceleration_calibrated.csv",
+    )
     return pd.read_csv(file)
 
 
 @pytest.fixture
 def agdc_file_temperature_adxl():
-    file = (
-        resource_filename("tests.resources", "temperature/Csv_ADC/CPW1C48210013_baseline_temperature_ADXL_ADC.csv"))
+    file = resource_filename(
+        "tests.resources",
+        "temperature/Csv_ADC/CPW1C48210013_baseline_temperature_ADXL_ADC.csv",
+    )
     return pd.read_csv(file)
 
 
 @pytest.fixture
 def agdc_file_temperature_mcu():
-    file = (
-        resource_filename("tests.resources", "temperature/Csv_ADC/CPW1C48210013_baseline_temperature_MCU_ADC.csv"
-    ))
+    file = resource_filename(
+        "tests.resources",
+        "temperature/Csv_ADC/CPW1C48210013_baseline_temperature_MCU_ADC.csv",
+    )
     return pd.read_csv(file)
 
 
 @pytest.fixture
 def agdc_file_temperature_adxl_cal():
-    file = (
-        resource_filename("tests.resources", "temperature/Csv_Calibrated/CPW1C48210013_baseline_temperature_ADXL_calibrated.csv"
-    ))
+    file = resource_filename(
+        "tests.resources",
+        "temperature/Csv_Calibrated/CPW1C48210013_baseline_temperature_ADXL_calibrated.csv",
+    )
     return pd.read_csv(file)
 
 
 @pytest.fixture
 def agdc_file_temperature_mcu_cal():
-    file = (
-        resource_filename("tests.resources",
-"temperature/Csv_Calibrated/CPW1C48210013_baseline_temperature_MCU_calibrated.csv"
-    ))
+    file = resource_filename(
+        "tests.resources",
+        "temperature/Csv_Calibrated/CPW1C48210013_baseline_temperature_MCU_calibrated.csv",
+    )
     return pd.read_csv(file)
 
 
 @pytest.fixture
 def v1_file():
-    return resource_filename("tests.resources",  "neo.gt3x")
+    return resource_filename("tests.resources", "neo.gt3x")
 
 
 @pytest.fixture
 def v1_gt():
-    return resource_filename("tests.resources",  "neo.csv")
+    return resource_filename("tests.resources", "neo.csv")
 
 
 @pytest.fixture
@@ -93,7 +100,7 @@ def calibrated_csv_file():
 
 @pytest.fixture
 def ism_enabled_file():
-    return resource_filename("tests.resources",  "ISM_Enabled.gt3x")
+    return resource_filename("tests.resources", "ISM_Enabled.gt3x")
 
 
 @pytest.fixture
