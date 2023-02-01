@@ -3,9 +3,9 @@ import io
 import logging
 import struct
 from dataclasses import InitVar, dataclass
+from typing import Optional, Union
 
 import numpy as np
-from typing import Optional, Union
 
 
 @dataclass
