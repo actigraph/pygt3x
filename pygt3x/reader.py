@@ -2,9 +2,8 @@
 
 import json
 import logging
-from zipfile import ZipFile
-
 from collections import Counter
+from zipfile import ZipFile
 
 import numpy as np
 import pandas as pd
@@ -34,6 +33,7 @@ class FileReader:
         self.file_name = file_name
         self.acceleration = np.empty((0, 4))
         self.temperature = np.empty((0, 3))
+        self.idle_sleep_mode_activated = None
 
     def __enter__(self):
         """Open zipped file and ret up readers."""
@@ -132,6 +132,15 @@ class FileReader:
                 logging.warning(f"Unsupported event type {evt.header.event_type}")
                 continue
 
+            if type == Types.Params:
+                params = np.frombuffer(evt.payload, dtype="<u8")
+                for param in params:
+                    buffer = param.tobytes()
+                    address = np.frombuffer(buffer, dtype=np.uint16)
+                    if address[1] == 0x1C:
+                        info = np.frombuffer(buffer, dtype="<u4")
+                        self.idle_sleep_mode_activated = np.bitwise_and(info[1], 4) > 1
+
             # dt is time delta w.r.t. last valid acceleration datapoint
             try:
                 last_second = acceleration[-1][0, 0]
@@ -152,6 +161,7 @@ class FileReader:
             # Idle sleep mode is encoded as an event with payload 8 when entering
             # and 09 when leaving.
             if type == Types.Event and evt.payload == b"\x08":
+                assert self.idle_sleep_mode_activated
                 last_idsm_ts = evt.header.timestamp
                 dt_idm = dt
                 if dt >= 2:

@@ -3,9 +3,9 @@ import io
 import logging
 import struct
 from dataclasses import InitVar, dataclass
+from typing import Optional, Union
 
 import numpy as np
-from typing import Optional, Union
 
 
 @dataclass
@@ -97,7 +97,7 @@ class Info:
     height: Optional[float]
     last_sample_time: int
     limb: Optional[str]
-    mass: Optional[float]
+    mass: Optional[str]
     race: Optional[str]
     sample_rate: int
     serial_numer: Optional[str]
@@ -137,7 +137,7 @@ class Info:
             height=float(output["Height"]) if "Height" in output else None,
             last_sample_time=int(output.get("Last Sample Time", 0)),
             limb=output.get("Limb", None),
-            mass=float(output["Mass"]) if "Mass" in output else None,
+            mass=output.get("Mass", None),
             race=output.get("Race", None),
             sample_rate=int(output.get("Sample Rate", 0)),
             serial_numer=output.get("Serial Number", None),

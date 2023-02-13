@@ -16,6 +16,9 @@ from pygt3x.calibration import CalibratedReader
 with FileReader("FILENAME") as reader:
     calibrated_reader = CalibratedReader(reader)
     df = calibrated_reader.to_pandas()
+    
+    # After reading a file, idle sleep mode status can be obtained
+    was_idle_sleep_mode_used = reader.idle_sleep_mode_activated
     print(df.head(5))
 ```
 
