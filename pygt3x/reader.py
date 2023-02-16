@@ -30,6 +30,7 @@ class FileReader:
 
     def __init__(self, file_name: str):
         """Initialise."""
+        self.logger = logging.getLogger(__name__)
         self.file_name = file_name
         self.acceleration = np.empty((0, 4))
         self.temperature = np.empty((0, 3))
@@ -81,7 +82,7 @@ class FileReader:
         shape = payload.shape
         expected_shape = (self.info.sample_rate, 4)
         if shape[1:] != expected_shape and shape != expected_shape:
-            logging.warning(f"Unexpected payload shape {shape}")
+            self.logger.warning(f"Unexpected payload shape {shape}")
         return payload
 
     def read_events(self, num_rows=None):
@@ -129,7 +130,7 @@ class FileReader:
             try:
                 type = Types(evt.header.event_type)
             except ValueError:
-                logging.warning(f"Unsupported event type {evt.header.event_type}")
+                self.logger.warning(f"Unsupported event type {evt.header.event_type}")
                 continue
 
             if type == Types.Params:
@@ -155,22 +156,27 @@ class FileReader:
             # or was e.g. ISM start/end
             time_travel_dt = last_idsm_ts - evt.header.timestamp
             if time_travel_dt > 0:
-                logging.debug(
+                self.logger.debug(
                     f"{evt.header.timestamp} --> {dt} time drift by {time_travel_dt}s"
                 )
 
             # Idle sleep mode is encoded as an event with payload 8 when entering
             # and 09 when leaving.
             if type == Types.Event and evt.payload == b"\x08":
-                assert self.idle_sleep_mode_activated
+                if not self.idle_sleep_mode_activated:
+                    self.logger.error(
+                        "Found activation of idle sleep mode in the data, but idle sleep"
+                        " mode was not activated in the device. This is probably a bug "
+                        "in the parser."
+                    )
                 last_idsm_ts = evt.header.timestamp
                 dt_idm = dt
                 if dt >= 2:
                     ts = pd.to_datetime(evt.header.timestamp, unit="s")
-                    logging.debug(f"Missed {dt}s before {ts}")
+                    self.logger.debug(f"Missed {dt}s before {ts}")
 
                 if idle_sleep_mode_started is not None:
-                    logging.warning(
+                    self.logger.warning(
                         f"Idle sleep mode was already active at"
                         f" {idle_sleep_mode_started}"
                     )
@@ -189,7 +195,7 @@ class FileReader:
                     acceleration.extend(payload)
                     continue
                 else:
-                    logging.warning(
+                    self.logger.warning(
                         f"Idle sleep mode was not active at {evt.header.timestamp}"
                     )
                     continue
@@ -224,10 +230,10 @@ class FileReader:
                 idle_sleep_mode_started = None
             if payload.shape[0] != 0:
                 if time_travel_dt > 0:
-                    logging.debug(
+                    self.logger.debug(
                         f"{evt.header.timestamp}>{dt} time drift by {time_travel_dt}s"
                     )
-                    logging.debug(f"Last valid second: {acceleration[-1][0, 0]}")
+                    self.logger.debug(f"Last valid second: {acceleration[-1][0, 0]}")
                     assert dt == 0, f"Expected dt=0 for time travelling, but dt={dt}"
                     acceleration[-1 - dt] = self._validate_payload(payload)
                 else:
@@ -246,7 +252,7 @@ class FileReader:
                 )
             )
             acceleration.extend(payload)
-        logging.debug(f"last ts {evt.header.timestamp}")
+        self.logger.debug(f"last ts {evt.header.timestamp}")
         return acceleration, temperature
 
     def get_data(self, num_rows=None):
@@ -271,7 +277,7 @@ class FileReader:
         counter = Counter(self.acceleration[:, 0].astype(int))
         wrong_freq_cases = [c for c in counter.values() if c != self.info.sample_rate]
         if len(wrong_freq_cases) > 0:
-            logging.warning(f"Wrong freq cases: {wrong_freq_cases}")
+            self.logger.warning(f"Wrong freq cases: {wrong_freq_cases}")
 
     def to_pandas(self):
         """Return acceleration data as pandas data frame."""
