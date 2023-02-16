@@ -138,7 +138,9 @@ class FileReader:
                     buffer = param.tobytes()
                     address = np.frombuffer(buffer, dtype="<u1")
                     if address[2] == 0x02:
-                        self.idle_sleep_mode_activated = np.bitwise_and(address[4], 4) == 4
+                        self.idle_sleep_mode_activated = (
+                            np.bitwise_and(address[4], 4) == 4
+                        )
 
             # dt is time delta w.r.t. last valid acceleration datapoint
             try:
