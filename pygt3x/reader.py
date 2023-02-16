@@ -165,9 +165,9 @@ class FileReader:
             if type == Types.Event and evt.payload == b"\x08":
                 if not self.idle_sleep_mode_activated:
                     self.logger.error(
-                        "Found activation of idle sleep mode in the data, but idle sleep"
-                        " mode was not activated in the device. This is probably a bug "
-                        "in the parser."
+                        "Found activation of idle sleep mode in the data, but idle "
+                        "sleep mode was not activated in the device. This is probably a"
+                        "bug in the parser."
                     )
                 last_idsm_ts = evt.header.timestamp
                 dt_idm = dt
