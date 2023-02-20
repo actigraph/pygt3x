@@ -174,7 +174,9 @@ class CalibratedReader:
         data = self.calibrate_acceleration()
         df = pd.DataFrame(data, columns=col_names)
         df.set_index("Timestamp", drop=True, inplace=True)
-        df = df.apply(lambda x: pd.to_numeric(x, downcast="float"))
+        df = df.apply(lambda x: pd.to_numeric(x, downcast="float")).sort_index(
+            kind="stable"
+        )
         return df
 
     def temperature_to_pandas(self):

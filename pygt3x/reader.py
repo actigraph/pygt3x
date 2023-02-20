@@ -285,6 +285,7 @@ class FileReader:
             self.get_data()
         df = pd.DataFrame(self.acceleration, columns=col_names)
         df.set_index("Timestamp", drop=True, inplace=True)
+        df.sort_index(kind="stable", inplace=True)
         return df
 
     def temperature_to_pandas(self):
@@ -295,6 +296,7 @@ class FileReader:
             self.get_data()
         df = pd.DataFrame(self.temperature, columns=col_names)
         df.set_index("Timestamp", drop=True, inplace=True)
+        df.sort_index(kind="stable", inplace=True)
         return df
 
 
