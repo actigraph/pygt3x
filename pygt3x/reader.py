@@ -234,8 +234,7 @@ class FileReader:
                         f"{evt.header.timestamp}>{dt} time drift by {time_travel_dt}s"
                     )
                     self.logger.debug(f"Last valid second: {acceleration[-1][0, 0]}")
-                    assert dt == 0, f"Expected dt=0 for time travelling, but dt={dt}"
-                    acceleration[-1 - dt] = self._validate_payload(payload)
+                    acceleration[-1 + dt] = self._validate_payload(payload)
                 else:
                     acceleration.append(self._validate_payload(payload))
 
