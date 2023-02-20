@@ -242,6 +242,7 @@ class FileReader:
             # Idle sleep mode was started but not finished before the recording
             # ended. This means that we might be missing some records at the end of
             # the file.
+            assert evt is not None
             idle_sleep_mode_ended = evt.header.timestamp
             payload = self._validate_payload(
                 self._fill_ism(
@@ -251,7 +252,8 @@ class FileReader:
                 )
             )
             acceleration.extend(payload)
-        self.logger.debug(f"last ts {evt.header.timestamp}")
+        if evt is not None:
+            self.logger.debug(f"last ts {evt.header.timestamp}")
         return acceleration, temperature
 
     def get_data(self, num_rows=None):
