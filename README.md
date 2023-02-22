@@ -9,13 +9,11 @@ To read calibrated accelerometer data, you can use the code snippet below:
 
 ```python
 from pygt3x.reader import FileReader
-from pygt3x.calibration import CalibratedReader
 
 # Read raw data and calibrate
 # Dump to pandas data frame
 with FileReader("FILENAME") as reader:
-    calibrated_reader = CalibratedReader(reader)
-    df = calibrated_reader.to_pandas()
+    df = reader.to_pandas()
     
     # After reading a file, idle sleep mode status can be obtained
     was_idle_sleep_mode_used = reader.idle_sleep_mode_activated
@@ -26,10 +24,8 @@ If your AGDC file contains temperature data, you can read it using:
 
 ```python
 from pygt3x.reader import FileReader
-from pygt3x.calibration import CalibratedReader
 
 with FileReader("FILENAME") as reader:
-    calibrated_reader = CalibratedReader(reader)
-    df = calibrated_reader.temperature_to_pandas()
+    df = reader.temperature_to_pandas()
     print(df.head(5))
 ```

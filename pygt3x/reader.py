@@ -3,6 +3,7 @@
 import json
 import logging
 from collections import Counter
+from typing import Optional
 from zipfile import ZipFile
 
 import numpy as np
@@ -13,9 +14,10 @@ from pygt3x.activity_payload import (
     read_activity1_payload,
     read_activity2_payload,
     read_activity3_payload,
-    read_nhanse_payload,
+    read_nhanes_payload,
     read_temperature_payload,
 )
+from pygt3x.calibration import CalibrationV2Service
 from pygt3x.components import Header, Info, RawEvent
 
 
@@ -28,13 +30,14 @@ class FileReader:
         Input file name
     """
 
-    def __init__(self, file_name: str):
+    def __init__(self, file_name: str, num_rows: Optional[int] = None):
         """Initialise."""
         self.logger = logging.getLogger(__name__)
         self.file_name = file_name
         self.acceleration = np.empty((0, 4))
         self.temperature = np.empty((0, 3))
         self.idle_sleep_mode_activated = None
+        self.num_rows = num_rows
 
     def __enter__(self):
         """Open zipped file and ret up readers."""
@@ -50,7 +53,7 @@ class FileReader:
         self.info = Info.read_zip(self.zipfile)
         self.calibration = self.read_json("calibration.json")
         self.temperature_calibration = self.read_json("temperature_calibration.json")
-
+        self._get_data(self.num_rows)
         return self
 
     def __exit__(self, typ, value, traceback):
@@ -103,9 +106,9 @@ class FileReader:
                 raw_event = self.logreader.read_event()
                 yield raw_event
 
-    def _get_data_nhanse(self):
-        """Yield NHANSE acceleration data."""
-        payload = read_nhanse_payload(
+    def _get_data_nhanes(self):
+        """Yield NHANES acceleration data."""
+        payload = read_nhanes_payload(
             self.activity_file,
             self.info.start_date,
             self.info.sample_rate,
@@ -126,6 +129,8 @@ class FileReader:
         # This is used for filling in gaps created by idle sleep mode
         last_values = None
         last_idsm_ts = 0
+        # Initialize evt in case there are no events in the GT3x file
+        evt = None
         for evt in self.read_events(num_rows):
             try:
                 type = Types(evt.header.event_type)
@@ -256,7 +261,7 @@ class FileReader:
             self.logger.debug(f"last ts {evt.header.timestamp}")
         return acceleration, temperature
 
-    def get_data(self, num_rows=None):
+    def _get_data(self, num_rows=None):
         """Yield acceleration data.
 
         Parameters:
@@ -265,7 +270,7 @@ class FileReader:
             Number of events to read.
         """
         if not self.logreader:
-            acceleration, temperature = self._get_data_nhanse()
+            acceleration, temperature = self._get_data_nhanes()
         else:
             acceleration, temperature = self._get_data_default(num_rows=num_rows)
 
@@ -280,24 +285,96 @@ class FileReader:
         if len(wrong_freq_cases) > 0:
             self.logger.warning(f"Wrong freq cases: {wrong_freq_cases}")
 
-    def to_pandas(self):
+    def calibrate_acceleration(self):
+        """Calibrates acceleration samples."""
+        calibration = self.calibration
+        info = self.info
+        acceleration = self.acceleration
+
+        if (
+            calibration is None
+            or ("isCalibrated" not in calibration)
+            or calibration["isCalibrated"]
+        ):
+            # Data is already calibrated, so just return unscaled values
+            accel_scale = info.acceleration_scale
+            calibrated_acceleration = np.concatenate(
+                (
+                    acceleration[:, :-3],
+                    acceleration[:, -3:] / accel_scale,
+                ),
+                axis=1,
+            )
+        elif calibration["calibrationMethod"] == 2:
+            # Use calibration method 2 to calibrate activity
+            sample_rate = info.sample_rate
+            calibration_service = CalibrationV2Service(calibration, sample_rate)
+            calibrated_acceleration = calibration_service.calibrate_samples(
+                acceleration
+            )
+        else:
+            raise NotImplementedError(
+                f"Unknown calibration method: " f"{calibration['calibrationMethod']}"
+            )
+        return calibrated_acceleration
+
+    def calibrate_temperature(self):
+        """Calibrates acceleration samples."""
+        calibration = self.temperature_calibration
+        temperature = self.temperature
+
+        if calibration is None or calibration["isCalibrated"]:
+            # Data is already calibrated, so just return
+            calibrated_temperature = temperature
+        elif calibration["calibrationMethod"] == 1:
+            # Use calibration method 1 to calibrate temperature
+            calibrated_temperature = temperature
+            adxl_temp = temperature[:, 2]
+            adxl_gain = (calibration["tempHigh"] - calibration["tempLow"]) / (
+                calibration["adxlTempHigh"] - calibration["adxlTempLow"]
+            )
+            adxl_temp = (
+                adxl_temp - calibration["adxlTempLow"]
+            ) * adxl_gain + calibration["tempLow"]
+            calibrated_temperature[:, 2] = adxl_temp
+            mcu_temp = temperature[:, 1]
+            mcu_gain = (calibration["tempHigh"] - calibration["tempLow"]) / (
+                calibration["mcuTempHigh"] - calibration["mcuTempLow"]
+            )
+            mcu_temp = (mcu_temp - calibration["mcuTempLow"]) * mcu_gain + calibration[
+                "tempLow"
+            ]
+            calibrated_temperature[:, 1] = mcu_temp
+
+        else:
+            raise NotImplementedError(
+                f"Unknown calibration method: " f"{calibration['calibrationMethod']}"
+            )
+        return calibrated_temperature
+
+    def to_pandas(self, calibrate: bool = True):
         """Return acceleration data as pandas data frame."""
+        if calibrate:
+            data = self.calibrate_acceleration()
+        else:
+            data = self.acceleration
         col_names = ["Timestamp", "X", "Y", "Z"]
-        if len(self.acceleration) == 0:
-            self.get_data()
-        df = pd.DataFrame(self.acceleration, columns=col_names)
+        df = pd.DataFrame(data, columns=col_names)
         df.set_index("Timestamp", drop=True, inplace=True)
+        df = df.apply(lambda x: pd.to_numeric(x, downcast="float"))
         df.sort_index(kind="stable", inplace=True)
         return df
 
-    def temperature_to_pandas(self):
+    def temperature_to_pandas(self, calibrate: bool = True):
         """Return temperature data as pandas data frame."""
         col_names = ["Timestamp", "TemperatureMCU", "TemperatureADXL"]
-        if len(self.temperature) == 0:
-            assert len(self.acceleration) == 0
-            self.get_data()
-        df = pd.DataFrame(self.temperature, columns=col_names)
+        if calibrate:
+            data = self.calibrate_temperature()
+        else:
+            data = self.temperature
+        df = pd.DataFrame(data, columns=col_names)
         df.set_index("Timestamp", drop=True, inplace=True)
+        df = df.apply(lambda x: pd.to_numeric(x, downcast="float"))
         df.sort_index(kind="stable", inplace=True)
         return df
 

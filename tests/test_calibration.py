@@ -1,6 +1,6 @@
 import pytest
 
-from pygt3x.calibration import CalibratedReader, CalibrationV2Service
+from pygt3x.calibration import CalibrationV2Service
 from pygt3x.reader import FileReader
 
 test_calibration = {
@@ -27,9 +27,8 @@ test_calibration = {
 
 def test_read(gt3x_file):
     with FileReader(gt3x_file) as reader:
-        uncalibrated_df = reader.to_pandas().mean()
-        calibrated = CalibratedReader(reader)
-        df = calibrated.to_pandas().mean()
+        uncalibrated_df = reader.to_pandas(calibrate=False).mean()
+        df = reader.to_pandas().mean()
     assert uncalibrated_df.X == pytest.approx(-76.11525538046477)
     assert uncalibrated_df.Y == pytest.approx(87.69668894475443)
     assert uncalibrated_df.Z == pytest.approx(103.93508015342586)

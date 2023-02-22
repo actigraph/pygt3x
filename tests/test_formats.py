@@ -2,14 +2,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pygt3x.calibration import CalibratedReader
 from pygt3x.reader import FileReader
 
 
 def test_read_agdc(agdc_file):
     with FileReader(agdc_file) as reader:
-        calibrated = CalibratedReader(reader)
-        df = calibrated.to_pandas()
+        df = reader.to_pandas()
     assert df.mean().X == pytest.approx(1.1185734272003174)
     assert df.mean().Y == pytest.approx(0.4293369650840759)
     assert df.mean().Z == pytest.approx(-0.08194955438375473)
@@ -19,8 +17,7 @@ def test_read_agdc_calibrated_acc(
     agdc_file_with_temperature, agdc_file_temperature_acc_cal
 ):
     with FileReader(agdc_file_with_temperature) as reader:
-        calibrated = CalibratedReader(reader)
-        df = calibrated.to_pandas()
+        df = reader.to_pandas()
     np.testing.assert_allclose(df.X.values, agdc_file_temperature_acc_cal.x_g.values)
     np.testing.assert_allclose(df.Y.values, agdc_file_temperature_acc_cal.y_g.values)
     np.testing.assert_allclose(df.Z.values, agdc_file_temperature_acc_cal.z_g.values)
@@ -63,7 +60,7 @@ def test_read_agdc_temp_mcu_cal(agdc_temperature_cal, agdc_file_temperature_mcu_
 def test_read_v1(v1_file, v1_gt):
     expected = pd.read_csv(v1_gt, skiprows=11, names=("X", "Y", "Z")).mean()
     with FileReader(v1_file) as reader:
-        df = reader.to_pandas().mean()
+        df = reader.to_pandas(calibrate=False).mean()
     assert df.X == pytest.approx(expected.X)
     assert df.Y == pytest.approx(expected.Y)
     assert df.Z == pytest.approx(expected.Z)

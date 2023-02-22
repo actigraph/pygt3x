@@ -3,7 +3,7 @@ import struct
 
 import numpy as np
 
-NHANSE_SCALE = 341
+NHANES_SCALE = 341
 
 
 def unpack_bitpack_acceleration(source: bytes):
@@ -59,7 +59,7 @@ def unpack_bitpack_temperature(source: bytes):
     return data
 
 
-def read_nhanse_payload(source, start_date: int, sample_rate: float):
+def read_nhanes_payload(source, start_date: int, sample_rate: float):
     """
     Handle reading NHANES GT3x data.
 
@@ -74,7 +74,7 @@ def read_nhanse_payload(source, start_date: int, sample_rate: float):
     """
     payload_bytes = source.read()
     data = np.round(
-        unpack_bitpack_acceleration(payload_bytes) / NHANSE_SCALE, 3
+        unpack_bitpack_acceleration(payload_bytes) / NHANES_SCALE, 3
     ).reshape((-1, 3))
     data = data[:, [1, 0, 2]]
     time = ((np.ones(data.shape[0]).cumsum() - 1) / sample_rate) + start_date / 1e9
