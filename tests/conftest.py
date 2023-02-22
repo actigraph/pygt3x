@@ -2,7 +2,6 @@ import pandas as pd
 import pytest
 from pkg_resources import resource_filename
 
-from pygt3x.calibration import CalibratedReader
 from pygt3x.reader import FileReader
 
 
@@ -26,15 +25,14 @@ def agdc_file_with_temperature():
 @pytest.fixture(scope="package")
 def agdc_temperature(agdc_file_with_temperature):
     with FileReader(agdc_file_with_temperature) as reader:
-        df = reader.temperature_to_pandas()
+        df = reader.temperature_to_pandas(calibrate=False)
     return df
 
 
 @pytest.fixture(scope="package")
 def agdc_temperature_cal(agdc_file_with_temperature):
     with FileReader(agdc_file_with_temperature) as reader:
-        calibrated = CalibratedReader(reader)
-        df = calibrated.temperature_to_pandas()
+        df = reader.temperature_to_pandas()
     return df
 
 
