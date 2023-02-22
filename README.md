@@ -10,13 +10,10 @@ To read calibrated accelerometer data, you can use the code snippet below:
 ```python
 from pygt3x.reader import FileReader
 
-# Read raw data and calibrate
-# Dump to pandas data frame
+# Read raw data and calibrate, then export to pandas data frame
 with FileReader("FILENAME") as reader:
-    df = reader.to_pandas()
-    
-    # After reading a file, idle sleep mode status can be obtained
     was_idle_sleep_mode_used = reader.idle_sleep_mode_activated
+    df = reader.to_pandas()
     print(df.head(5))
 ```
 
