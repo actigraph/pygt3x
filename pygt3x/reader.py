@@ -78,7 +78,9 @@ class FileReader:
         )
         values = last_values.reshape((1, 3)).repeat(timestamps.shape[0], axis=0)
 
-        result = np.concatenate((timestamps, values), axis=1).reshape((-1, 30, 4))
+        result = np.concatenate((timestamps, values), axis=1).reshape(
+            (-1, self.info.sample_rate, 4)
+        )
         return result
 
     def _validate_payload(self, payload):
