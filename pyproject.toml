@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pygt3x"
-version = "0.5.1"
+version = "0.5.2"
 description = "Python module for reading GT3X/AGDC file format data"
 authors = ["Mark Fogle <mark.fogle@theactigraph.com>"]
 maintainers = ["Ali Neishabouri <ali.neishabouri@theactigraph.com>"]

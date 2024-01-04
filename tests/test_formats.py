@@ -60,7 +60,13 @@ def test_read_agdc_temp_mcu_cal(agdc_temperature_cal, agdc_file_temperature_mcu_
 def test_read_v1(v1_file, v1_gt):
     expected = pd.read_csv(v1_gt, skiprows=11, names=("X", "Y", "Z")).mean()
     with FileReader(v1_file) as reader:
-        df = reader.to_pandas(calibrate=False).mean()
+        df = reader.to_pandas().mean()
     assert df.X == pytest.approx(expected.X)
     assert df.Y == pytest.approx(expected.Y)
     assert df.Z == pytest.approx(expected.Z)
+
+
+def test_read_nhanes(nhanes_file):
+    with FileReader(nhanes_file) as reader:
+        df = reader.to_pandas()
+        assert len(df) == 18143952

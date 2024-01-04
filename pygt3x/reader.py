@@ -38,6 +38,7 @@ class FileReader:
         self.temperature = np.empty((0, 3))
         self.idle_sleep_mode_activated = None
         self.num_rows = num_rows
+        self.nhanes = None
 
     def __enter__(self):
         """Open zipped file and ret up readers."""
@@ -45,11 +46,13 @@ class FileReader:
         try:
             self.logfile = self.zipfile.open("log.bin", "r")
             self.logreader = LogReader(self.logfile)
+            self.nhanes = False
         except KeyError:
             # V1 file
             self.logreader = None
             self.logfile = self.zipfile.open("log.txt", "r")
             self.activity_file = self.zipfile.open("activity.bin", "r")
+            self.nhanes = True
         self.info = Info.read_zip(self.zipfile)
         self.calibration = self.read_json("calibration.json")
         self.temperature_calibration = self.read_json("temperature_calibration.json")
@@ -356,7 +359,7 @@ class FileReader:
 
     def to_pandas(self, calibrate: bool = True):
         """Return acceleration data as pandas data frame."""
-        if calibrate:
+        if calibrate and not self.nhanes:
             data = self.calibrate_acceleration()
         else:
             data = self.acceleration

@@ -21,6 +21,8 @@ def unpack_bitpack_acceleration(source: bytes):
 
     """
     data = np.frombuffer(source, dtype=np.uint8)
+    if (data.shape[0] % 3) == 1:
+        data = data[:-4]
     fst_uint8, mid_uint8, lst_uint8 = (
         np.reshape(data, (data.shape[0] // 3, 3)).astype(np.uint16).T
     )
