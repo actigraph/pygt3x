@@ -79,10 +79,16 @@ class FileReader:
             .repeat(self.info.sample_rate)
             .reshape(-1, 1)
         )
+        add = np.tile(
+            ((np.ones((self.info.sample_rate, 1))).cumsum() - 1)
+            / self.info.sample_rate,
+            timestamps.shape[0] // self.info.sample_rate,
+        )
+        timestamps += add.reshape((-1, 1))
         values = last_values.reshape((1, 3)).repeat(timestamps.shape[0], axis=0)
 
         result = np.concatenate((timestamps, values), axis=1).reshape(
-            (-1, self.info.sample_rate, 4)
+            (-1, self.info.sample_rate, 4), order="C"
         )
         return result
 
@@ -221,11 +227,17 @@ class FileReader:
                     continue
 
             if type == Types.Activity3:
-                payload = read_activity3_payload(evt.payload, evt.header.timestamp)
+                payload = read_activity3_payload(
+                    evt.payload, evt.header.timestamp, self.info.sample_rate
+                )
             elif type == Types.Activity2:
-                payload = read_activity2_payload(evt.payload, evt.header.timestamp)
+                payload = read_activity2_payload(
+                    evt.payload, evt.header.timestamp, self.info.sample_rate
+                )
             elif type == Types.Activity:
-                payload = read_activity1_payload(evt.payload, evt.header.timestamp)
+                payload = read_activity1_payload(
+                    evt.payload, evt.header.timestamp, self.info.sample_rate
+                )
             elif type == Types.TemperatureRecord:
                 temperature.append(
                     read_temperature_payload(evt.payload, evt.header.timestamp)
@@ -366,7 +378,7 @@ class FileReader:
         col_names = ["Timestamp", "X", "Y", "Z"]
         df = pd.DataFrame(data, columns=col_names)
         df.set_index("Timestamp", drop=True, inplace=True)
-        df = df.apply(lambda x: pd.to_numeric(x, downcast="float"))
+        df = df.apply(lambda x: pd.to_numeric(x, downcast="float"))  # type: ignore
         df.sort_index(kind="stable", inplace=True)
         return df
 
@@ -379,7 +391,7 @@ class FileReader:
             data = self.temperature
         df = pd.DataFrame(data, columns=col_names)
         df.set_index("Timestamp", drop=True, inplace=True)
-        df = df.apply(lambda x: pd.to_numeric(x, downcast="float"))
+        df = df.apply(lambda x: pd.to_numeric(x, downcast="float"))  # type: ignore
         df.sort_index(kind="stable", inplace=True)
         return df
 

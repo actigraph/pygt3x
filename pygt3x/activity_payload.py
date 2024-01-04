@@ -83,7 +83,7 @@ def read_nhanes_payload(source, start_date: int, sample_rate: float):
     return np.concatenate((time.reshape((-1, 1)), data), axis=1)
 
 
-def read_activity1_payload(payload_bytes: bytes, timestamp: int):
+def read_activity1_payload(payload_bytes: bytes, timestamp: int, sample_rate: float):
     """
     Parse Activity 1 Payloads.
 
@@ -95,15 +95,13 @@ def read_activity1_payload(payload_bytes: bytes, timestamp: int):
         Event timestamp
     """
     data = unpack_bitpack_acceleration(payload_bytes)
-
-    data = np.concatenate(
-        (np.array(timestamp).repeat(len(data)).reshape(-1, 1), data), axis=1
-    )
+    time = ((np.ones(data.shape[0]).cumsum() - 1) / sample_rate) + timestamp
+    data = np.concatenate((time.reshape((-1, 1)), data), axis=1)
     data = data[:, [0, 2, 1, 3]]
     return data
 
 
-def read_activity2_payload(payload_bytes, timestamp):
+def read_activity2_payload(payload_bytes, timestamp, sample_rate):
     """Read Activity 2 Payload.
 
     Parameters:
@@ -116,13 +114,12 @@ def read_activity2_payload(payload_bytes, timestamp):
     if (len(payload_bytes) % 6) != 0:
         payload_bytes = payload_bytes[: -(len(payload_bytes) % 6) + 1]
     data = np.frombuffer(payload_bytes, dtype=np.int16).reshape((-1, 3))
-    data = np.concatenate(
-        (np.array(timestamp).repeat(len(data)).reshape(-1, 1), data), axis=1
-    )
+    time = ((np.ones(data.shape[0]).cumsum() - 1) / sample_rate) + timestamp
+    data = np.concatenate((time.reshape(-1, 1), data), axis=1)
     return data.reshape((-1, 4))
 
 
-def read_activity3_payload(payload_bytes, timestamp):
+def read_activity3_payload(payload_bytes, timestamp, sample_rate):
     """Parse Activity 3 Payload.
 
     Parameters:
@@ -133,9 +130,8 @@ def read_activity3_payload(payload_bytes, timestamp):
         Event timestamp
     """
     data = unpack_bitpack_acceleration(payload_bytes)
-    data = np.concatenate(
-        (np.array(timestamp).repeat(len(data)).reshape(-1, 1), data), axis=1
-    )
+    time = ((np.ones(data.shape[0]).cumsum() - 1) / sample_rate) + timestamp
+    data = np.concatenate((time.reshape(-1, 1), data), axis=1)
     return data
 
 
