@@ -9,7 +9,7 @@ repository = "https://github.com/actigraph/pygt3x"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.8.1,<3.12"
+python = ">=3.9,<3.12"
 pandas = ">=1.2.5"
 numpy = ">=1.21.2"
 
