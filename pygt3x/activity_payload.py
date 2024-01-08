@@ -10,6 +10,15 @@ def unpack_bitpack_acceleration(source: bytes):
     """
     Unpack activity stored as sets of 3, 12-bit integers.
 
+    In GT3x files, data is packed as 12 bit numbers. Each sample contains 36 bits. In
+    order to read this data, we proceed by packs of 3 bytes, which will give us 24 bits,
+    corresponding to two numbers (out of 3).
+
+    This works well is there are an even number of sample, because we can divide them
+    into three axes (2*36=72, which can be divided by 3). Otherwise, the last 12 bits
+    are unaccounted for. To avoid this issue, if we cannot divide bytes into 3, we pad
+    the data with zeros.
+
     Parameters:
     -----------
     source:
@@ -22,14 +31,17 @@ def unpack_bitpack_acceleration(source: bytes):
     """
     data = np.frombuffer(source, dtype=np.uint8)
     if (data.shape[0] % 3) == 1:
-        data = data[:-4]
+        data = np.pad(data, (0, 2), "constant")
     fst_uint8, mid_uint8, lst_uint8 = (
         np.reshape(data, (data.shape[0] // 3, 3)).astype(np.uint16).T
     )
     fst_uint12 = (fst_uint8 << 4) + (mid_uint8 >> 4)
     snd_uint12 = ((mid_uint8 % 16) << 8) + lst_uint8
     concat = np.concatenate((fst_uint12[:, None], snd_uint12[:, None]), axis=1)
-    data = concat.reshape((-1, 3))
+    try:
+        data = concat.reshape((-1, 3))
+    except ValueError:
+        data = concat.reshape((-1))[:-1].reshape((-1, 3))
     data[data > 2047] = data[data > 2047] + 61440
 
     return data.astype(np.int16)

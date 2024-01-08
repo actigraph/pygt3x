@@ -69,4 +69,4 @@ def test_read_v1(v1_file, v1_gt):
 def test_read_nhanes(nhanes_file):
     with FileReader(nhanes_file) as reader:
         df = reader.to_pandas()
-        assert len(df) == 18143952
+        assert len(df) == 18143953
