@@ -38,6 +38,7 @@ class FileReader:
         self.temperature = np.empty((0, 3))
         self.idle_sleep_mode_activated = None
         self.num_rows = num_rows
+        self.nhanes = None
 
     def __enter__(self):
         """Open zipped file and ret up readers."""
@@ -45,11 +46,13 @@ class FileReader:
         try:
             self.logfile = self.zipfile.open("log.bin", "r")
             self.logreader = LogReader(self.logfile)
+            self.nhanes = False
         except KeyError:
             # V1 file
             self.logreader = None
             self.logfile = self.zipfile.open("log.txt", "r")
             self.activity_file = self.zipfile.open("activity.bin", "r")
+            self.nhanes = True
         self.info = Info.read_zip(self.zipfile)
         self.calibration = self.read_json("calibration.json")
         self.temperature_calibration = self.read_json("temperature_calibration.json")
@@ -76,10 +79,16 @@ class FileReader:
             .repeat(self.info.sample_rate)
             .reshape(-1, 1)
         )
+        add = np.tile(
+            ((np.ones((self.info.sample_rate, 1))).cumsum() - 1)
+            / self.info.sample_rate,
+            timestamps.shape[0] // self.info.sample_rate,
+        )
+        timestamps += add.reshape((-1, 1))
         values = last_values.reshape((1, 3)).repeat(timestamps.shape[0], axis=0)
 
         result = np.concatenate((timestamps, values), axis=1).reshape(
-            (-1, self.info.sample_rate, 4)
+            (-1, self.info.sample_rate, 4), order="C"
         )
         return result
 
@@ -218,11 +227,17 @@ class FileReader:
                     continue
 
             if type == Types.Activity3:
-                payload = read_activity3_payload(evt.payload, evt.header.timestamp)
+                payload = read_activity3_payload(
+                    evt.payload, evt.header.timestamp, self.info.sample_rate
+                )
             elif type == Types.Activity2:
-                payload = read_activity2_payload(evt.payload, evt.header.timestamp)
+                payload = read_activity2_payload(
+                    evt.payload, evt.header.timestamp, self.info.sample_rate
+                )
             elif type == Types.Activity:
-                payload = read_activity1_payload(evt.payload, evt.header.timestamp)
+                payload = read_activity1_payload(
+                    evt.payload, evt.header.timestamp, self.info.sample_rate
+                )
             elif type == Types.TemperatureRecord:
                 temperature.append(
                     read_temperature_payload(evt.payload, evt.header.timestamp)
@@ -356,14 +371,14 @@ class FileReader:
 
     def to_pandas(self, calibrate: bool = True):
         """Return acceleration data as pandas data frame."""
-        if calibrate:
+        if calibrate and not self.nhanes:
             data = self.calibrate_acceleration()
         else:
             data = self.acceleration
         col_names = ["Timestamp", "X", "Y", "Z"]
         df = pd.DataFrame(data, columns=col_names)
         df.set_index("Timestamp", drop=True, inplace=True)
-        df = df.apply(lambda x: pd.to_numeric(x, downcast="float"))
+        df = df.apply(lambda x: pd.to_numeric(x, downcast="float"))  # type: ignore
         df.sort_index(kind="stable", inplace=True)
         return df
 
@@ -376,7 +391,7 @@ class FileReader:
             data = self.temperature
         df = pd.DataFrame(data, columns=col_names)
         df.set_index("Timestamp", drop=True, inplace=True)
-        df = df.apply(lambda x: pd.to_numeric(x, downcast="float"))
+        df = df.apply(lambda x: pd.to_numeric(x, downcast="float"))  # type: ignore
         df.sort_index(kind="stable", inplace=True)
         return df
 

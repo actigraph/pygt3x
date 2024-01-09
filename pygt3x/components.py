@@ -76,7 +76,7 @@ class RawEvent:
         )
         new_checksum = int(~new_checksum & 0xFF)
         if new_checksum.to_bytes(1, "little") != checksum:
-            logging.warning(f"Corrupted event at {self.header.timestamp}.")
+            logging.warning("Corrupted event at %s.", self.header.timestamp)
             raise ValueError("Event checksum does not match.")
 
 
