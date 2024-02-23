@@ -20,7 +20,6 @@ from pygt3x.activity_payload import (
 from pygt3x.calibration import CalibrationV2Service
 from pygt3x.components import Header, Info, RawEvent
 
-
 class FileReader:
     """Read GT3X/AGDC files.
 
@@ -256,7 +255,7 @@ class FileReader:
                         f"{evt.header.timestamp}>{dt} time drift by {time_travel_dt}s"
                     )
                     self.logger.debug(f"Last valid second: {acceleration[-1][0, 0]}")
-                    acceleration[-1 + dt] = self._validate_payload(payload)
+                    acceleration[-1 + int(dt)] = self._validate_payload(payload)
                 else:
                     acceleration.append(self._validate_payload(payload))
 
@@ -297,10 +296,25 @@ class FileReader:
             self.temperature = np.concatenate(temperature)
 
         # Make sure each second appears sample rate times
+        # - two potential issues here: 1) identical samples are duplicated or 2) timestamp is duplicated but data is
+        #   different
+
+        # 1) check for and remove identical samples
+        self.acceleration, counts = np.unique(self.acceleration, axis=0, return_counts=True)
+        duplicates_removed = self.acceleration[counts > 1]
+        if duplicates_removed.size > 0:
+            self.logger.warning(f"{duplicates_removed.shape[0]} duplicate accelerometer samples removed.")
+            for d in duplicates_removed:
+                self.logger.debug(f"Duplicate sample removed: {d.tolist()}")
+
+        # 2) in remaining data check for duplicate timestamps and/or seconds that do not have appropriate number of samples
         counter = Counter(self.acceleration[:, 0].astype(int))
-        wrong_freq_cases = [c for c in counter.values() if c != self.info.sample_rate]
-        if len(wrong_freq_cases) > 0:
-            self.logger.warning(f"Wrong freq cases: {wrong_freq_cases}")
+        wrong_freq_cases = [(k, v) for k, v in counter.items() if v != self.info.sample_rate]
+        #if len(wrong_freq_cases) > 0:
+        for w in wrong_freq_cases:
+            self.logger.warning(f"Timestamp (second) {w[0]} has {w[1]} samples instead of {self.info.sample_rate}.")
+
+
 
     def calibrate_acceleration(self):
         """Calibrates acceleration samples."""
@@ -426,3 +440,22 @@ class LogReader:
         except ValueError:
             return None
         return raw_event
+
+if __name__ == "__main__":
+
+    from pathlib import Path
+    from datetime import datetime
+
+    #gt3x_path = Path("W:/hr_device_comp/ActiGraph/TAS1H20200138 (2024-02-02).gt3x")
+    #gt3x_path = Path("W:/MacM3/MacM3_Samples_Waterloo/MacM3-31_4M/MacM3-31_4M.gt3x")
+    gt3x_path = Path("X:/MacM3/Actigraph Problems/CorruptedEvent/MacM3-242_B.gt3x")
+
+
+    start_time = datetime.now()
+    # Read raw data and calibrate, then export to pandas data frame
+    with FileReader(gt3x_path) as reader:
+        was_idle_sleep_mode_used = reader.idle_sleep_mode_activated
+        accel = reader.to_pandas()
+        temperature = reader.temperature_to_pandas()
+
+    print(f"Duration: {datetime.now() - start_time}")
