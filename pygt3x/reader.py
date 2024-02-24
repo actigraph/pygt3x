@@ -142,6 +142,11 @@ class FileReader:
         # Initialize evt in case there are no events in the GT3x file
         evt = None
         for evt in self.read_events(num_rows):
+
+            if not evt.is_checksum_valid:
+                logging.warning(f"Event checksum does not match at {evt.header.timestamp}.")
+                continue
+
             try:
                 type = Types(evt.header.event_type)
             except ValueError:
@@ -296,9 +301,6 @@ class FileReader:
             self.temperature = np.concatenate(temperature)
 
         # Make sure each second appears sample rate times
-        # - two potential issues here: 1) identical samples are duplicated or 2) timestamp is duplicated but data is
-        #   different
-
         # 1) check for and remove identical samples
         self.acceleration, counts = np.unique(self.acceleration, axis=0, return_counts=True)
         duplicates_removed = self.acceleration[counts > 1]
@@ -307,7 +309,7 @@ class FileReader:
             for d in duplicates_removed:
                 self.logger.debug(f"Duplicate sample removed: {d.tolist()}")
 
-        # 2) in remaining data check for duplicate timestamps and/or seconds that do not have appropriate number of samples
+        # 2) in remaining data check for seconds that do not have appropriate number of samples
         counter = Counter(self.acceleration[:, 0].astype(int))
         wrong_freq_cases = [(k, v) for k, v in counter.items() if v != self.info.sample_rate]
         #if len(wrong_freq_cases) > 0:
@@ -435,16 +437,15 @@ class LogReader:
         checksum = self.source.read(1)
         if not checksum:
             return None
-        try:
-            raw_event = RawEvent(header, payload_bytes, checksum)
-        except ValueError:
-            return None
+        raw_event = RawEvent(header, payload_bytes, checksum)
         return raw_event
 
 if __name__ == "__main__":
 
     from pathlib import Path
     from datetime import datetime
+
+    logging.basicConfig(level=logging.DEBUG)
 
     #gt3x_path = Path("W:/hr_device_comp/ActiGraph/TAS1H20200138 (2024-02-02).gt3x")
     #gt3x_path = Path("W:/MacM3/MacM3_Samples_Waterloo/MacM3-31_4M/MacM3-31_4M.gt3x")
