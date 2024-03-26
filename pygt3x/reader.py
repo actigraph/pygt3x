@@ -439,24 +439,3 @@ class LogReader:
             return None
         raw_event = RawEvent(header, payload_bytes, checksum)
         return raw_event
-
-if __name__ == "__main__":
-
-    from pathlib import Path
-    from datetime import datetime
-
-    logging.basicConfig(level=logging.DEBUG)
-
-    #gt3x_path = Path("W:/hr_device_comp/ActiGraph/TAS1H20200138 (2024-02-02).gt3x")
-    #gt3x_path = Path("W:/MacM3/MacM3_Samples_Waterloo/MacM3-31_4M/MacM3-31_4M.gt3x")
-    gt3x_path = Path("X:/MacM3/Actigraph Problems/CorruptedEvent/MacM3-242_B.gt3x")
-
-
-    start_time = datetime.now()
-    # Read raw data and calibrate, then export to pandas data frame
-    with FileReader(gt3x_path) as reader:
-        was_idle_sleep_mode_used = reader.idle_sleep_mode_activated
-        accel = reader.to_pandas()
-        temperature = reader.temperature_to_pandas()
-
-    print(f"Duration: {datetime.now() - start_time}")
