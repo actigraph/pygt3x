@@ -145,7 +145,7 @@ class FileReader:
         for evt in self.read_events(num_rows):
 
             if not evt.is_checksum_valid:
-                logging.warning(
+                self.logger.warning(
                     f"Event checksum does not match at {evt.header.timestamp}."
                 )
                 continue
@@ -304,19 +304,6 @@ class FileReader:
             self.temperature = np.concatenate(temperature)
 
         # Make sure each second appears sample rate times
-        # 1) check for and remove identical samples
-        self.acceleration, counts = np.unique(
-            self.acceleration, axis=0, return_counts=True
-        )
-        duplicates_removed = self.acceleration[counts > 1]
-        if duplicates_removed.size > 0:
-            self.logger.warning(
-                f"{duplicates_removed.shape[0]} duplicate accelerometer samples removed."
-            )
-            for d in duplicates_removed:
-                self.logger.debug(f"Duplicate sample removed: {d.tolist()}")
-
-        # 2) in remaining data check for seconds that do not have appropriate number of samples
         counter = Counter(self.acceleration[:, 0].astype(int))
         wrong_freq_cases = [
             (k, v) for k, v in counter.items() if v != self.info.sample_rate
