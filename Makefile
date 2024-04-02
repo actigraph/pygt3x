@@ -1,7 +1,7 @@
 DUMMY: lint test format
 
 format:
-	black .
+	black --preview tests pygt3x
 
 lint:
 	flake8 pygt3x tests

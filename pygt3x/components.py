@@ -1,4 +1,5 @@
 """GT3x header structure."""
+
 import io
 import logging
 import struct

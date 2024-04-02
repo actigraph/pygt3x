@@ -20,6 +20,7 @@ from pygt3x.activity_payload import (
 from pygt3x.calibration import CalibrationV2Service
 from pygt3x.components import Header, Info, RawEvent
 
+
 class FileReader:
     """Read GT3X/AGDC files.
 
@@ -144,7 +145,9 @@ class FileReader:
         for evt in self.read_events(num_rows):
 
             if not evt.is_checksum_valid:
-                logging.warning(f"Event checksum does not match at {evt.header.timestamp}.")
+                logging.warning(
+                    f"Event checksum does not match at {evt.header.timestamp}."
+                )
                 continue
 
             try:
@@ -302,21 +305,27 @@ class FileReader:
 
         # Make sure each second appears sample rate times
         # 1) check for and remove identical samples
-        self.acceleration, counts = np.unique(self.acceleration, axis=0, return_counts=True)
+        self.acceleration, counts = np.unique(
+            self.acceleration, axis=0, return_counts=True
+        )
         duplicates_removed = self.acceleration[counts > 1]
         if duplicates_removed.size > 0:
-            self.logger.warning(f"{duplicates_removed.shape[0]} duplicate accelerometer samples removed.")
+            self.logger.warning(
+                f"{duplicates_removed.shape[0]} duplicate accelerometer samples removed."
+            )
             for d in duplicates_removed:
                 self.logger.debug(f"Duplicate sample removed: {d.tolist()}")
 
         # 2) in remaining data check for seconds that do not have appropriate number of samples
         counter = Counter(self.acceleration[:, 0].astype(int))
-        wrong_freq_cases = [(k, v) for k, v in counter.items() if v != self.info.sample_rate]
-        #if len(wrong_freq_cases) > 0:
+        wrong_freq_cases = [
+            (k, v) for k, v in counter.items() if v != self.info.sample_rate
+        ]
+        # if len(wrong_freq_cases) > 0:
         for w in wrong_freq_cases:
-            self.logger.warning(f"Timestamp (second) {w[0]} has {w[1]} samples instead of {self.info.sample_rate}.")
-
-
+            self.logger.warning(
+                f"Timestamp (second) {w[0]} has {w[1]} samples instead of {self.info.sample_rate}."
+            )
 
     def calibrate_acceleration(self):
         """Calibrates acceleration samples."""
