@@ -311,7 +311,8 @@ class FileReader:
         # if len(wrong_freq_cases) > 0:
         for w in wrong_freq_cases:
             self.logger.warning(
-                f"Timestamp (second) {w[0]} has {w[1]} samples instead of {self.info.sample_rate}."
+                f"Timestamp (second) {w[0]} has {w[1]} samples"
+                f" instead of {self.info.sample_rate}."
             )
 
     def calibrate_acceleration(self):

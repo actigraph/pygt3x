@@ -1,7 +1,6 @@
 """GT3x header structure."""
 
 import io
-import logging
 import struct
 from dataclasses import dataclass, field
 from typing import Optional, Union
