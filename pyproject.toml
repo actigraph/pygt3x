@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pygt3x"
-version = "0.5.5"
+version = "0.6.0"
 description = "Python module for reading GT3X/AGDC file format data"
 authors = ["Mark Fogle <mark.fogle@theactigraph.com>"]
 maintainers = ["Ali Neishabouri <ali.neishabouri@theactigraph.com>"]
@@ -20,6 +20,7 @@ flake8 = "^6.0.0"
 pytest-cov = "^4.0.0"
 pydocstyle = "^6.1.1"
 types-setuptools = "^65.7.0.3"
+flake8-logging = "^1.6.0"
 
 [[tool.mypy.overrides]]
 module = ["pandas"]

@@ -20,6 +20,8 @@ from pygt3x.activity_payload import (
 from pygt3x.calibration import CalibrationV2Service
 from pygt3x.components import Header, Info, RawEvent
 
+logger = logging.getLogger(__name__)
+
 
 class FileReader:
     """Read GT3X/AGDC files.
@@ -32,7 +34,6 @@ class FileReader:
 
     def __init__(self, file_name: str, num_rows: Optional[int] = None):
         """Initialise."""
-        self.logger = logging.getLogger(__name__)
         self.file_name = file_name
         self.acceleration = np.empty((0, 4))
         self.temperature = np.empty((0, 3))
@@ -96,7 +97,7 @@ class FileReader:
         shape = payload.shape
         expected_shape = (self.info.sample_rate, 4)
         if shape[1:] != expected_shape and shape != expected_shape:
-            self.logger.warning(f"Unexpected payload shape {shape}")
+            logger.warning("Unexpected payload shape %s", shape)
         return payload
 
     def read_events(self, num_rows=None):
@@ -145,15 +146,15 @@ class FileReader:
         for evt in self.read_events(num_rows):
 
             if not evt.is_checksum_valid:
-                self.logger.warning(
-                    f"Event checksum does not match at {evt.header.timestamp}."
+                logger.warning(
+                    "Event checksum does not match at %s .", evt.header.timestamp
                 )
                 continue
 
             try:
                 type = Types(evt.header.event_type)
             except ValueError:
-                self.logger.warning(f"Unsupported event type {evt.header.event_type}")
+                logger.warning("Unsupported event type %s", evt.header.event_type)
                 continue
 
             if type == Types.Params:
@@ -179,15 +180,18 @@ class FileReader:
             # or was e.g. ISM start/end
             time_travel_dt = last_idsm_ts - evt.header.timestamp
             if time_travel_dt > 0:
-                self.logger.debug(
-                    f"{evt.header.timestamp} --> {dt} time drift by {time_travel_dt}s"
+                logger.debug(
+                    "%s --> %s time drift by %s s",
+                    evt.header.timestamp,
+                    dt,
+                    time_travel_dt,
                 )
 
             # Idle sleep mode is encoded as an event with payload 8 when entering
             # and 09 when leaving.
             if type == Types.Event and evt.payload == b"\x08":
                 if not self.idle_sleep_mode_activated:
-                    self.logger.error(
+                    logger.error(
                         "Found activation of idle sleep mode in the data, but idle "
                         "sleep mode was not activated in the device. This is probably a"
                         "bug in the parser."
@@ -196,12 +200,12 @@ class FileReader:
                 dt_idm = dt
                 if dt >= 2:
                     ts = pd.to_datetime(evt.header.timestamp, unit="s")
-                    self.logger.debug(f"Missed {dt}s before {ts}")
+                    logger.debug("Missed %s s before %s", dt, ts)
 
                 if idle_sleep_mode_started is not None:
-                    self.logger.warning(
-                        f"Idle sleep mode was already active at"
-                        f" {idle_sleep_mode_started}"
+                    logger.warning(
+                        "Idle sleep mode was already active at %s",
+                        idle_sleep_mode_started,
                     )
                 idle_sleep_mode_started = evt.header.timestamp
                 continue
@@ -218,8 +222,8 @@ class FileReader:
                     acceleration.extend(payload)
                     continue
                 else:
-                    self.logger.warning(
-                        f"Idle sleep mode was not active at {evt.header.timestamp}"
+                    logger.warning(
+                        "Idle sleep mode was not active at %s", evt.header.timestamp
                     )
                     continue
 
@@ -259,10 +263,13 @@ class FileReader:
                 idle_sleep_mode_started = None
             if payload.shape[0] != 0:
                 if time_travel_dt > 0:
-                    self.logger.debug(
-                        f"{evt.header.timestamp}>{dt} time drift by {time_travel_dt}s"
+                    logger.debug(
+                        "%s>%s time drift by %s s",
+                        evt.header.timestamp,
+                        dt,
+                        time_travel_dt,
                     )
-                    self.logger.debug(f"Last valid second: {acceleration[-1][0, 0]}")
+                    logger.debug("Last valid second: %s", acceleration[-1][0, 0])
                     acceleration[-1 + int(dt)] = self._validate_payload(payload)
                 else:
                     acceleration.append(self._validate_payload(payload))
@@ -282,7 +289,7 @@ class FileReader:
             )
             acceleration.extend(payload)
         if evt is not None:
-            self.logger.debug(f"last ts {evt.header.timestamp}")
+            logger.debug("last ts %s", evt.header.timestamp)
         return acceleration, temperature
 
     def _get_data(self, num_rows=None):
@@ -298,6 +305,19 @@ class FileReader:
         else:
             acceleration, temperature = self._get_data_default(num_rows=num_rows)
 
+        # Check for and remove identical samples
+        if len(acceleration) > 1:
+            assert len(acceleration[0].shape) == 2
+            acceleration, counts = np.unique(acceleration, axis=0, return_counts=True)
+            duplicates_removed = acceleration[counts > 1]
+            if duplicates_removed.size > 0:
+                logger.warning(
+                    "%s duplicate accelerometer samples removed.",
+                    duplicates_removed.shape[0],
+                )
+                for d in duplicates_removed:
+                    logger.debug("Duplicate sample removed: %s", d.tolist())
+
         if len(acceleration) > 0:
             self.acceleration = np.concatenate(acceleration)
         if len(temperature) > 0:
@@ -308,11 +328,12 @@ class FileReader:
         wrong_freq_cases = [
             (k, v) for k, v in counter.items() if v != self.info.sample_rate
         ]
-        # if len(wrong_freq_cases) > 0:
         for w in wrong_freq_cases:
-            self.logger.warning(
-                f"Timestamp (second) {w[0]} has {w[1]} samples"
-                f" instead of {self.info.sample_rate}."
+            logger.warning(
+                "Timestamp (second) %s has %s samples instead of %s.",
+                w[0],
+                w[1],
+                self.info.sample_rate,
             )
 
     def calibrate_acceleration(self):
