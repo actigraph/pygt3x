@@ -312,7 +312,7 @@ class FileReader:
             duplicates_removed = acceleration[counts > 1]
             if duplicates_removed.size > 0:
                 logger.warning(
-                    "%s duplicate accelerometer samples removed.",
+                    "%s duplicate accelerometer records removed.",
                     duplicates_removed.shape[0],
                 )
                 for d in duplicates_removed:
