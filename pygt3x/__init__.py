@@ -1,4 +1,5 @@
 """GT3x python module."""
+
 from enum import Enum, unique
 
 

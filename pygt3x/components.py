@@ -1,8 +1,8 @@
 """GT3x header structure."""
+
 import io
-import logging
 import struct
-from dataclasses import InitVar, dataclass
+from dataclasses import dataclass, field
 from typing import Optional, Union
 
 import numpy as np
@@ -41,7 +41,7 @@ class Header:
         self.payload_size = payload_size
 
 
-@dataclass(frozen=True)
+@dataclass
 class RawEvent:
     """
     Gt3xRawEvent class.
@@ -58,9 +58,10 @@ class RawEvent:
 
     header: Header
     payload: bytes
-    checksum: InitVar[bytes]
+    checksum: bytes
+    is_checksum_valid: bool = field(init=False)
 
-    def __post_init__(self, checksum: bytes):
+    def __post_init__(self):
         """Verify event's checksum."""
         new_checksum = self.header.separator ^ self.header.event_type
         timestamp = self.header.timestamp.to_bytes(4, "little")
@@ -75,9 +76,7 @@ class RawEvent:
             np.frombuffer(self.payload, dtype=np.uint8), initial=new_checksum
         )
         new_checksum = int(~new_checksum & 0xFF)
-        if new_checksum.to_bytes(1, "little") != checksum:
-            logging.warning("Corrupted event at %s.", self.header.timestamp)
-            raise ValueError("Event checksum does not match.")
+        self.is_checksum_valid = new_checksum.to_bytes(1, "little") == self.checksum
 
 
 @dataclass

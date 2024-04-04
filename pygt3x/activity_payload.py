@@ -1,4 +1,5 @@
 """Binary payload parsing."""
+
 import struct
 
 import numpy as np
