@@ -316,7 +316,7 @@ class FileReader:
                     duplicates_removed.shape[0],
                 )
                 for d in duplicates_removed:
-                    logger.debug("Duplicate sample removed: %s", d.tolist())
+                    logger.debug("Duplicate accelerometer record removed: %s", d.tolist())
 
         if len(acceleration) > 0:
             self.acceleration = np.concatenate(acceleration)
