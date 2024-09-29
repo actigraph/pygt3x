@@ -99,7 +99,7 @@ class Info:
     mass: Optional[str]
     race: Optional[str]
     sample_rate: int
-    serial_numer: Optional[str]
+    serial_number: Optional[str]
     sex: Optional[str]
     side: Optional[str]
     start_date: int
@@ -139,7 +139,7 @@ class Info:
             mass=output.get("Mass", None),
             race=output.get("Race", None),
             sample_rate=int(output.get("Sample Rate", 0)),
-            serial_numer=output.get("Serial Number", None),
+            serial_number=output.get("Serial Number", None),
             sex=output.get("Sex", None),
             side=output.get("Side", None),
             start_date=int(output.get("Start Date", 0)),

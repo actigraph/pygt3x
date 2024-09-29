@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pygt3x"
-version = "0.6.0"
+version = "0.6.1"
 description = "Python module for reading GT3X/AGDC file format data"
 authors = ["Mark Fogle <mark.fogle@theactigraph.com>"]
 maintainers = ["Ali Neishabouri <ali.neishabouri@theactigraph.com>"]
@@ -14,10 +14,10 @@ pandas = ">=1.2.5"
 numpy = ">=1.21.2"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^7.2.0"
-mypy = "^0.991"
+pytest = "^7.4.2"
+mypy = ">= 1.5.1"
 flake8 = "^6.0.0"
-pytest-cov = "^4.0.0"
+pytest-cov = "^4.1.0"
 pydocstyle = "^6.1.1"
 types-setuptools = "^65.7.0.3"
 flake8-logging = "^1.6.0"
