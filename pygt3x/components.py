@@ -96,7 +96,7 @@ class Info:
     height: Optional[float]
     last_sample_time: int
     limb: Optional[str]
-    mass: Optional[str]
+    mass: Optional[float]
     race: Optional[str]
     sample_rate: int
     serial_number: Optional[str]
@@ -124,19 +124,17 @@ class Info:
             acceleration_max=float(output.get("Acceleration Max", 0)),
             acceleration_min=float(output.get("Acceleration Min", 0)),
             acceleration_scale=float(output.get("Acceleration Scale", 0)),
-            age=float(output["Age"]) if "Age" in output else None,
+            age=float(output.get("Age", None)),
             battery_voltage=float(output.get("Battery Voltage", "0").replace(",", ".")),
             board_revision=output.get("Board Revision", None),
             device_type=output.get("Device Type", None),
             dominance=output.get("Dominance", None),
-            download_date=(
-                int(output["Download Date"]) if "Download Date" in output else None
-            ),
+            download_date=int(output.get("Download Date", None)),
             firmware=output.get("Firmware", None),
             height=float(output.get("Height", None).replace(",", ".")),
             last_sample_time=int(output.get("Last Sample Time", 0)),
             limb=output.get("Limb", None),
-            mass=output.get("Mass", None),
+            mass=float(output.get("Mass", None).replace(",", ".")),
             race=output.get("Race", None),
             sample_rate=int(output.get("Sample Rate", 0)),
             serial_number=output.get("Serial Number", None),
