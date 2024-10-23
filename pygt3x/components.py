@@ -133,7 +133,7 @@ class Info:
                 int(output["Download Date"]) if "Download Date" in output else None
             ),
             firmware=output.get("Firmware", None),
-            height=float(output["Height"]) if "Height" in output else None,
+            height=float(output["Height"].replace(',', '.')) if "Height" in output else None,
             last_sample_time=int(output.get("Last Sample Time", 0)),
             limb=output.get("Limb", None),
             mass=output.get("Mass", None),
