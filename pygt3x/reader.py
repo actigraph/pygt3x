@@ -86,16 +86,17 @@ class FileReader:
             timestamps.shape[0] // self.info.sample_rate,
         )
         timestamps += add.reshape((-1, 1))
-        values = last_values.reshape((1, 3)).repeat(timestamps.shape[0], axis=0)
+        values = last_values.reshape((1, 4)).repeat(timestamps.shape[0], axis=0)
 
         result = np.concatenate((timestamps, values), axis=1).reshape(
-            (-1, self.info.sample_rate, 4), order="C"
+            (-1, self.info.sample_rate, 5), order="C"
         )
+        result[:, :, 4] = 1
         return result
 
     def _validate_payload(self, payload):
         shape = payload.shape
-        expected_shape = (self.info.sample_rate, 4)
+        expected_shape = (self.info.sample_rate, 5)
         if shape[1:] != expected_shape and shape != expected_shape:
             logger.warning("Unexpected payload shape %s", shape)
         return payload
@@ -338,11 +339,10 @@ class FileReader:
                 self.info.sample_rate,
             )
 
-    def calibrate_acceleration(self):
+    def calibrate_acceleration(self, acceleration):
         """Calibrates acceleration samples."""
         calibration = self.calibration
         info = self.info
-        acceleration = self.acceleration
 
         if (
             calibration is None
@@ -351,13 +351,7 @@ class FileReader:
         ):
             # Data is already calibrated, so just return unscaled values
             accel_scale = info.acceleration_scale
-            calibrated_acceleration = np.concatenate(
-                (
-                    acceleration[:, :-3],
-                    acceleration[:, -3:] / accel_scale,
-                ),
-                axis=1,
-            )
+            calibrated_acceleration = acceleration / accel_scale
         elif calibration["calibrationMethod"] == 2:
             # Use calibration method 2 to calibrate activity
             sample_rate = info.sample_rate
@@ -407,12 +401,13 @@ class FileReader:
 
     def to_pandas(self, calibrate: bool = True):
         """Return acceleration data as pandas data frame."""
+        col_names = ["Timestamp", "X", "Y", "Z", "IdleSleepMode"]
+        df = pd.DataFrame(self.acceleration, columns=col_names)
         if calibrate and not self.nhanes:
-            data = self.calibrate_acceleration()
-        else:
-            data = self.acceleration
-        col_names = ["Timestamp", "X", "Y", "Z"]
-        df = pd.DataFrame(data, columns=col_names)
+            df[["X", "Y", "Z"]] = self.calibrate_acceleration(
+                df[["X", "Y", "Z"]].values
+            )
+        df.IdleSleepMode = df.IdleSleepMode == 1
         df.set_index("Timestamp", drop=True, inplace=True)
         df = df.apply(lambda x: pd.to_numeric(x, downcast="float"))  # type: ignore
         df.sort_index(kind="stable", inplace=True)
