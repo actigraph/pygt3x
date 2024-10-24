@@ -70,13 +70,7 @@ class CalibrationV2Service:
         sample
             Acceleration data
         """
-        return np.concatenate(
-            (
-                sample[:, :-3],
-                np.matmul(
-                    self.sensitivity_matrix,
-                    (sample[:, -3:] - self.offset_vector).transpose(),
-                ).transpose(),
-            ),
-            axis=1,
-        )
+        return np.matmul(
+            self.sensitivity_matrix,
+            (sample - self.offset_vector).transpose(),
+        ).transpose()

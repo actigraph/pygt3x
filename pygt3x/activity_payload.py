@@ -93,7 +93,9 @@ def read_nhanes_payload(source, start_date: int, sample_rate: float):
     ).reshape((-1, 3))
     data = data[:, [1, 0, 2]]
     time = ((np.ones(data.shape[0]).cumsum() - 1) / sample_rate) + start_date / 1e9
-    return np.concatenate((time.reshape((-1, 1)), data), axis=1)
+    return np.concatenate(
+        (time.reshape((-1, 1)), data, np.zeros((data.shape[0], 1))), axis=1
+    )
 
 
 def read_activity1_payload(payload_bytes: bytes, timestamp: int, sample_rate: float):
@@ -109,8 +111,10 @@ def read_activity1_payload(payload_bytes: bytes, timestamp: int, sample_rate: fl
     """
     data = unpack_bitpack_acceleration(payload_bytes)
     time = ((np.ones(data.shape[0]).cumsum() - 1) / sample_rate) + timestamp
-    data = np.concatenate((time.reshape((-1, 1)), data), axis=1)
-    data = data[:, [0, 2, 1, 3]]
+    data = np.concatenate(
+        (time.reshape((-1, 1)), data, np.zeros((data.shape[0], 1))), axis=1
+    )
+    data = data[:, [0, 2, 1, 3, 4]]
     return data
 
 
@@ -128,8 +132,10 @@ def read_activity2_payload(payload_bytes, timestamp, sample_rate):
         payload_bytes = payload_bytes[: -(len(payload_bytes) % 6) + 1]
     data = np.frombuffer(payload_bytes, dtype=np.int16).reshape((-1, 3))
     time = ((np.ones(data.shape[0]).cumsum() - 1) / sample_rate) + timestamp
-    data = np.concatenate((time.reshape(-1, 1), data), axis=1)
-    return data.reshape((-1, 4))
+    data = np.concatenate(
+        (time.reshape(-1, 1), data, np.zeros((data.shape[0], 1))), axis=1
+    )
+    return data.reshape((-1, 5))
 
 
 def read_activity3_payload(payload_bytes, timestamp, sample_rate):
@@ -144,7 +150,9 @@ def read_activity3_payload(payload_bytes, timestamp, sample_rate):
     """
     data = unpack_bitpack_acceleration(payload_bytes)
     time = ((np.ones(data.shape[0]).cumsum() - 1) / sample_rate) + timestamp
-    data = np.concatenate((time.reshape(-1, 1), data), axis=1)
+    data = np.concatenate(
+        (time.reshape(-1, 1), data, np.zeros((data.shape[0], 1))), axis=1
+    )
     return data
 
 
