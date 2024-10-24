@@ -129,12 +129,18 @@ class Info:
             board_revision=output.get("Board Revision", None),
             device_type=output.get("Device Type", None),
             dominance=output.get("Dominance", None),
-            download_date=(int(output["Download Date"]) if "Download Date" in output else None),
+            download_date=(
+                int(output["Download Date"]) if "Download Date" in output else None
+            ),
             firmware=output.get("Firmware", None),
-            height=float(output["Height"].replace(',', '.')) if "Height" in output else None,
+            height=(
+                float(output["Height"].replace(",", "."))
+                if "Height" in output
+                else None
+            ),
             last_sample_time=int(output.get("Last Sample Time", 0)),
             limb=output.get("Limb", None),
-            mass=float(output["Mass"].replace(',', '.')) if "Mass" in output else None,
+            mass=float(output["Mass"].replace(",", ".")) if "Mass" in output else None,
             race=output.get("Race", None),
             sample_rate=int(output.get("Sample Rate", 0)),
             serial_number=output.get("Serial Number", None),
