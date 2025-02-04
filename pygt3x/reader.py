@@ -35,7 +35,7 @@ class FileReader:
     def __init__(self, file_name: str, num_rows: Optional[int] = None):
         """Initialise."""
         self.file_name = file_name
-        self.acceleration = np.empty((0, 4))
+        self.acceleration = np.empty((0, 5))
         self.temperature = np.empty((0, 3))
         self.idle_sleep_mode_activated = None
         self.num_rows = num_rows
