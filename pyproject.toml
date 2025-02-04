@@ -11,6 +11,9 @@ dependencies = [
     "pandas>=1.2.5",
     "numpy>=1.21.2",
 ]
+testpaths = [
+    "tests",
+]
 
 [project.urls]
 Repository = "https://github.com/actigraph/pygt3x"
@@ -43,3 +46,8 @@ ignore_missing_imports = true
 
 [tool.hatch.version]
 source = "uv-dynamic-versioning"
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "/tests/resources"
+]
