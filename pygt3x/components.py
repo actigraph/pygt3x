@@ -96,7 +96,7 @@ class Info:
     height: Optional[float]
     last_sample_time: int
     limb: Optional[str]
-    mass: Optional[str]
+    mass: Optional[float]
     race: Optional[str]
     sample_rate: int
     serial_number: Optional[str]
@@ -133,10 +133,14 @@ class Info:
                 int(output["Download Date"]) if "Download Date" in output else None
             ),
             firmware=output.get("Firmware", None),
-            height=float(output["Height"]) if "Height" in output else None,
+            height=(
+                float(output["Height"].replace(",", "."))
+                if "Height" in output
+                else None
+            ),
             last_sample_time=int(output.get("Last Sample Time", 0)),
             limb=output.get("Limb", None),
-            mass=output.get("Mass", None),
+            mass=float(output["Mass"].replace(",", ".")) if "Mass" in output else None,
             race=output.get("Race", None),
             sample_rate=int(output.get("Sample Rate", 0)),
             serial_number=output.get("Serial Number", None),
