@@ -20,7 +20,7 @@ steps:
   displayName: 'Use Python $(python.version)'
 
 - script: |
-    python -m pip install --upgrade pip uv keyring artifacts-keyring
+    python -m pip install --upgrade pip uv uv-dynamic-versioning keyring artifacts-keyring
   displayName: 'Install package and tools'
 
 - script: |
