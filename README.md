@@ -26,3 +26,13 @@ with FileReader("FILENAME") as reader:
     df = reader.temperature_to_pandas()
     print(df.head(5))
 ```
+
+If your GT3X file contains Bluetooth heart rate data, you can read it using:
+
+```python
+from pygt3x.reader import FileReader
+
+with FileReader("FILENAME") as reader:
+    df = reader.hr_to_pandas()
+    print(df.head(5))
+```
