@@ -3,7 +3,7 @@
 import json
 import logging
 from collections import Counter
-from typing import Optional
+from typing import Optional, List, Tuple
 from zipfile import ZipFile
 
 import numpy as np
@@ -16,6 +16,7 @@ from pygt3x.activity_payload import (
     read_activity3_payload,
     read_nhanes_payload,
     read_temperature_payload,
+    read_heartrate_ble_payload,
 )
 from pygt3x.calibration import CalibrationV2Service
 from pygt3x.components import Header, Info, RawEvent
@@ -37,6 +38,8 @@ class FileReader:
         self.file_name = file_name
         self.acceleration = np.empty((0, 5))
         self.temperature = np.empty((0, 3))
+        self.heart_rate_ble: List[Tuple[int, int]] = []
+        self.heart_rate_ble_rr: List[Tuple[int, int, float]] = []
         self.idle_sleep_mode_activated = None
         self.num_rows = num_rows
         self.nhanes = None
@@ -255,6 +258,13 @@ class FileReader:
                     read_temperature_payload(evt.payload, evt.header.timestamp)
                 )
                 continue
+            elif type == Types.HeartRateBle:
+                hr_recs, rr_recs = read_heartrate_ble_payload(
+                    evt.payload, evt.header.timestamp
+                )
+                self.heart_rate_ble.extend(hr_recs)
+                self.heart_rate_ble_rr.extend(rr_recs)
+                continue
             else:
                 continue
             if payload.shape[0] > 0:
@@ -325,6 +335,10 @@ class FileReader:
             self.acceleration = np.concatenate(acceleration)
         if len(temperature) > 0:
             self.temperature = np.concatenate(temperature)
+        if self.heart_rate_ble:
+            self.heart_rate_ble = np.array(self.heart_rate_ble)
+        if self.heart_rate_ble_rr:
+            self.heart_rate_ble_rr = np.array(self.heart_rate_ble_rr)
 
         # Make sure each second appears sample rate times
         counter = Counter(self.acceleration[:, 0].astype(int))
@@ -423,6 +437,39 @@ class FileReader:
         df = pd.DataFrame(data, columns=col_names)
         df.set_index("Timestamp", drop=True, inplace=True)
         df = df.apply(lambda x: pd.to_numeric(x, downcast="float"))  # type: ignore
+        df.sort_index(kind="stable", inplace=True)
+        return df
+
+    def hr_to_pandas(self):
+        """Return Bluetooth LE heart‐rate data as pandas DataFrame."""
+        col_names = ["Timestamp", "HeartRate"]
+        # If no HR records, return empty DataFrame
+        if len(self.heart_rate_ble) == 0:
+            return pd.DataFrame(
+                columns=["HeartRate"], index=pd.DatetimeIndex([], name="Timestamp")
+            )
+        # Build DataFrame from raw (timestamp, hr)
+        df = pd.DataFrame(self.heart_rate_ble, columns=col_names)
+        df.set_index("Timestamp", inplace=True, drop=True)
+        df = df.apply(lambda x: pd.to_numeric(x, downcast="float"))
+        df.sort_index(kind="stable", inplace=True)
+        return df
+
+    def rr_to_pandas(self):
+        """Return Bluetooth LE heart‐rate RR‐interval data as pandas DataFrame."""
+        # If no RR records, return empty DataFrame
+        if len(self.heart_rate_ble_rr) == 0:
+            return pd.DataFrame(
+                columns=["HeartRate", "RRInterval"],
+                index=pd.DatetimeIndex([], name="Timestamp"),
+            )
+
+        # Build DataFrame from raw (timestamp, hr, rr_s)
+        df = pd.DataFrame(
+            self.heart_rate_ble_rr, columns=["Timestamp", "HeartRate", "RRInterval"]
+        )
+        df.set_index("Timestamp", inplace=True, drop=True)
+        df = df.apply(lambda col: pd.to_numeric(col, downcast="float"))
         df.sort_index(kind="stable", inplace=True)
         return df
 
