@@ -178,7 +178,7 @@ def read_heartrate_ble_payload(payload: bytes, timestamp: int):
     Parse Bluetooth LE Heart Rate Measurement (Type 14 / 0x0E).
 
     Format per Bluetooth spec (flags, HR, optional EE, optional RR-intervals)
-    
+
     Returns two lists of tuples:
       - hr_records:   [(timestamp, hr_bpm), ...]
       - rr_records:   [(timestamp, hr_bpm, rr_seconds), ...]
@@ -206,7 +206,7 @@ def read_heartrate_ble_payload(payload: bytes, timestamp: int):
         # each RR is a little-endian uint16, units 1/1024 sec
         count = (len(payload) - offset) // 2
         for i in range(count):
-            raw = int.from_bytes(payload[offset:offset+2], 'little')
+            raw = int.from_bytes(payload[offset : offset + 2], "little")
             rr_s = raw / 1024.0
             rr_records.append((timestamp, hr, rr_s))
             offset += 2

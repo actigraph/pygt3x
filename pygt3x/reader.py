@@ -3,7 +3,7 @@
 import json
 import logging
 from collections import Counter
-from typing import Optional
+from typing import Optional, List, Tuple
 from zipfile import ZipFile
 
 import numpy as np
@@ -38,8 +38,8 @@ class FileReader:
         self.file_name = file_name
         self.acceleration = np.empty((0, 5))
         self.temperature = np.empty((0, 3))
-        self.heart_rate_ble = []
-        self.heart_rate_ble_rr = []
+        self.heart_rate_ble: List[Tuple[int, int]] = []
+        self.heart_rate_ble_rr: List[Tuple[int, int, float]] = []
         self.idle_sleep_mode_activated = None
         self.num_rows = num_rows
         self.nhanes = None
@@ -442,36 +442,35 @@ class FileReader:
 
     def hr_to_pandas(self):
         """Return Bluetooth LE heart‐rate data as pandas DataFrame."""
-        col_names = ['Timestamp', 'HeartRate']
+        col_names = ["Timestamp", "HeartRate"]
         # If no HR records, return empty DataFrame
         if len(self.heart_rate_ble) == 0:
             return pd.DataFrame(
-                columns=['HeartRate'],
-                index=pd.DatetimeIndex([], name='Timestamp')
+                columns=["HeartRate"], index=pd.DatetimeIndex([], name="Timestamp")
             )
         # Build DataFrame from raw (timestamp, hr)
         df = pd.DataFrame(self.heart_rate_ble, columns=col_names)
-        df.set_index('Timestamp', inplace=True, drop=True)
-        df = df.apply(lambda x: pd.to_numeric(x, downcast='float'))
-        df.sort_index(kind='stable', inplace=True)
+        df.set_index("Timestamp", inplace=True, drop=True)
+        df = df.apply(lambda x: pd.to_numeric(x, downcast="float"))
+        df.sort_index(kind="stable", inplace=True)
         return df
-    
+
     def rr_to_pandas(self):
         """Return Bluetooth LE heart‐rate RR‐interval data as pandas DataFrame."""
         # If no RR records, return empty DataFrame
         if len(self.heart_rate_ble_rr) == 0:
             return pd.DataFrame(
-                columns=['HeartRate', 'RRInterval'],
-                index=pd.DatetimeIndex([], name='Timestamp'))
+                columns=["HeartRate", "RRInterval"],
+                index=pd.DatetimeIndex([], name="Timestamp"),
+            )
 
         # Build DataFrame from raw (timestamp, hr, rr_s)
         df = pd.DataFrame(
-            self.heart_rate_ble_rr,
-            columns=['Timestamp', 'HeartRate', 'RRInterval']
+            self.heart_rate_ble_rr, columns=["Timestamp", "HeartRate", "RRInterval"]
         )
-        df.set_index('Timestamp', inplace=True, drop=True)
-        df = df.apply(lambda col: pd.to_numeric(col, downcast='float'))
-        df.sort_index(kind='stable', inplace=True)
+        df.set_index("Timestamp", inplace=True, drop=True)
+        df = df.apply(lambda col: pd.to_numeric(col, downcast="float"))
+        df.sort_index(kind="stable", inplace=True)
         return df
 
 
