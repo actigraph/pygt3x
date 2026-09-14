@@ -12,6 +12,10 @@ strategy:
       python.version: '3.10'
     Python311:
       python.version: '3.11'
+    Python312:
+      python.version: '3.12'
+    Python313:
+      python.version: '3.13'
 
 steps:
 - task: UsePythonVersion@0
@@ -22,6 +26,10 @@ steps:
 - script: |
     python -m pip install --upgrade pip uv uv-dynamic-versioning keyring artifacts-keyring
   displayName: 'Install package and tools'
+
+- script: |
+    python -m pip install --no-deps .
+  displayName: 'Check package installation'
 
 - script: |
     uv sync
