@@ -144,6 +144,7 @@ class FileReader:
         last_idsm_ts = 0
         # Initialize evt in case there are no events in the GT3x file
         evt = None
+        last_valid_timestamp = None
         for evt in self.read_events(num_rows):
 
             if not evt.is_checksum_valid:
@@ -151,6 +152,8 @@ class FileReader:
                     "Event checksum does not match at %s .", evt.header.timestamp
                 )
                 continue
+
+            last_valid_timestamp = evt.header.timestamp
 
             try:
                 type = Types(evt.header.event_type)
@@ -279,8 +282,8 @@ class FileReader:
             # Idle sleep mode was started but not finished before the recording
             # ended. This means that we might be missing some records at the end of
             # the file.
-            assert evt is not None
-            idle_sleep_mode_ended = evt.header.timestamp
+            assert last_valid_timestamp is not None
+            idle_sleep_mode_ended = last_valid_timestamp
             payload = self._validate_payload(
                 self._fill_ism(
                     idle_sleep_mode_started - (dt_idm - 1),
